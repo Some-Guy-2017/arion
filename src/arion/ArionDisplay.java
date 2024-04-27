@@ -15,11 +15,19 @@ import callback.*;
 
 public class ArionDisplay
 {
-    JFrame frame;
-    final static double FONT_PROPORTION = 0.5;
+    private class FontSize
+    {
+        public final static float HEADER_SIZE = 25f;
+        public final static float PARAGRAPH_SIZE = 17f;
+    }
+    
     final static int MARGIN_SIZE = 20;
     final static int COMPONENT_PADDING = 10;
-    final static float BIG_FONT_SIZE = 20f;
+    final static int HEADER_PADDING = 20;
+
+    final static Dimension BUTTON_SIZE = new Dimension(300, 40);
+    
+    JFrame frame;
     
     public ArionDisplay(String title, int width, int height)
     {
@@ -93,76 +101,50 @@ public class ArionDisplay
         }
     }
 
-    private JButton generateMainScreenButton(String text)
+    // aligns the component in the center, and sets the font size
+    private void makeDisplayReady(JComponent component, int fontStyle, float fontSize)
     {
-        Dimension desiredSize = new Dimension(100, 40);
+        component.setAlignmentX(JComponent.CENTER_ALIGNMENT);
+        component.setFont(component.getFont().derivefont(fontStyle, fontSize));
+    }
 
+    private JButton generateButton(String text)
+    {
         JButton button = new JButton(text);
-        button.setPreferredSize(desiredSize);
-        button.setMaximumSize(desiredSize);
-        button.setAlignmentX(JComponent.CENTER_ALIGNMENT);
-        setProportionalFont(button, button.getText(), desiredSize);
+        button.setPreferredSize(BUTTON_SIZE);
+        button.setMaximumSize(BUTTON_SIZE);
+        makeDisplayReady(button, Font.PLAIN, FontSize.PARAGRAPH_SIZE);
         return button;
     }
 
     public void displayMainScreen(Runnable addCallback, Runnable studyCallback)
     { 
-        JButton studyButton = generateMainScreenButton("Study");
-        JButton addButton = generateMainScreenButton("Add");
-
         JPanel panel = new JPanel();
         setFrameContent(panel);
         panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
+        
+        JButton studyButton = generateButton("Study");
+        JButton addButton = generateButton("Add");
 
-        panel.add(studyButton);
-        panel.add(Box.createRigidArea(new Dimension(0, COMPONENT_PADDING)));
-        panel.add(addButton);
+        JLabel label = new JLabel("Main Screen");
+        makeDisplayReady(label, FontSize.HEADER_SIZE);
+        
+        addPanelComponent(panel, label, HEADER_PADDING);
+        addPanelComponent(panel, studyButton, COMPONENT_PADDING);
+        addPanelComponent(panel, addButton, COMPONENT_PADDING);
         panel.add(Box.createGlue());
             
         setFrameContent(panel);
 
-
-            //JPanel panel = new JPanel(new GridBagLayout());
-            //GridBagConstraints gbc = generateGBC();
-            //gbc.fill = GridBagConstraints.BOTH; // resize components to match grid cell size
-            //gbc.weightx = 0.0;
-            //
-            //gbc.weighty = 5.0;
-            //gbc.gridx = 0;
-            //gbc.gridy = 0;
-            //addPanelPadding(panel, gbc);
-
-            //gbc.weighty = 1.0;
-            //gbc.gridx = 0;
-            //gbc.gridy++;
-            //JButton studyButton = new JButton("Study");
-            //studyButton.addActionListener((ActionEvent e) -> studyCallback.run());
-            //addPanelButton(panel, gbc, studyButton, 0.1);
-            //
-            //gbc.weighty = 5.0;
-            //gbc.gridx = 0;
-            //gbc.gridy++;
-            //addPanelPadding(panel, gbc);
-            //
-            //gbc.weighty = 1.0;
-            //gbc.gridx = 0;
-            //gbc.gridy++;
-            //JButton addButton = new JButton("Add");
-            //addButton.addActionListener((ActionEvent e) -> addCallback.run());
-            //addPanelButton(panel, gbc, addButton, 0.1);
-
-            //gbc.weighty = 5.0;
-            //gbc.gridx = 0;
-            //gbc.gridy++;
-            //addPanelPadding(panel, gbc);
-
-            //setFrameContent(panel);
-
-            //// this must be done after setting the frame content
-            //// so the button sizes are known
-            //setProportionalFont(studyButton, studyButton.getText());
     }
 
+    private void addPanelComponent(JPanel panel, JComponent component, int padding)
+    {
+        panel.add(component);
+        panel.add(Box.createRigidArea(new Dimension(0, padding)));
+    }
+
+    /*
     // sets the component's font to be proportional to its size
     // code modified based on:
     // https://stackoverflow.com/questions/19989683/using-an-affline-transformation-to-set-font-size-to-be-proportional-to-its-conta
@@ -184,8 +166,6 @@ public class ArionDisplay
         Font newFont = font.deriveFont(AffineTransform.getScaleInstance(scale, scale));
         component.setFont(newFont);
 
-        //component.setFont(component.getFont().deriveFont(BIG_FONT_SIZE));
-
     }
 
     private void setProportionalFont(JComponent component, String text)
@@ -194,44 +174,7 @@ public class ArionDisplay
         component.getSize(componentSize);
         setProportionalFont(component, text, componentSize);
     }
-
-    // adds a button to the JPanel
-    // the button has half its width in padding on either side:
-    //     |[p] [bbbb] [p]|
-    // 'p' is padding, 'b' is button, '|' is the border of the JPanel
-    private void addPanelButton(JPanel panel, GridBagConstraints gbc, JButton button, double proportion)
-    {
-        if (proportion <= 0.0 || proportion > 1)
-        {
-            printWarning("Invalid button proportion.");
-            return;
-        }
-
-        double prevWeight = gbc.weightx; // remember the previous weightx
-        
-        // add padding to side
-        gbc.weightx = (1.0 - proportion) / 2;
-        addPanelPadding(panel, gbc);
-
-        // add button
-        gbc.weightx = proportion;
-        gbc.gridx++;
-        panel.add(button, gbc);
-
-        // add padding to side
-        gbc.weightx = (1.0 - proportion) / 2;
-        gbc.gridx++;
-        addPanelPadding(panel, gbc);
-
-        gbc.weightx = prevWeight;
-    }
-
-    // add padding to the JPanel according to the provided constraints;
-    // this is its own method to abstract away the use of an empty panel as padding.
-    private void addPanelPadding(JPanel panel, GridBagConstraints gbc)
-    {
-        panel.add(new JLabel(), gbc);
-    }
+    */
 
     private void setFrameContent(JPanel panel)
     {
@@ -279,14 +222,5 @@ public class ArionDisplay
     private void printWarning(String text)
     {
         System.err.println("WARNING: " + text);
-    }
-
-    private GridBagConstraints generateGBC() {
-        GridBagConstraints gbc = new GridBagConstraints();
-        
-        // start at (0, 0)
-        gbc.gridx = 0;
-        gbc.gridy = 0;
-        return gbc;
     }
 }
