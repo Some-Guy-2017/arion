@@ -6,31 +6,64 @@
  */
 
 package arion;
+
 import callback.*;
+import java.util.ArrayList;
+import java.io.IOException;
 
 public class Arion
 {
-    private static ArionDisplay display;
-    private static Flashcard[] flashcards;
+    private final static String databaseFilename = "./flashcards";
+    private final static Database database = new Database(databaseFilename);
+    private static ArionDisplay display = new ArionDisplay("Arion", 1024, 576);
+    private static ArrayList<Flashcard> flashcards = new ArrayList<Flashcard>();
+    
+    private static AddCallback addCallback = (String[] fields) -> addFlashcard(fields);
 
     public static void main(String[] args)
     {
-        display = new ArionDisplay("Arion", 1024, 576);
         prepareMenuBar();
+        enterMainScreen();
+    }
+
+    private static void enterMainScreen() {
         display.displayMainScreen(
-            () -> System.out.println("TODO: Add 'Add Button' callback"),
-            () -> System.out.println("TODO: Add 'Study Button' callback")
+            () -> display.displayAddScreen(addCallback),
+            () -> studyFlashcards()
         );
     }
     
     public static void loadFlashcards()
     {
-        System.out.println("TODO: Load flashcards.");
+        if (!database.canRead())
+        {
+            display.displayMessage("No database file found.", "Database Error");
+        }
+        try
+        {
+            flashcards = database.readFlashcards();
+        }
+        catch (IOException e)
+        {
+            display.displayMessage("Error while reading flashcards.", "IO Error");
+            e.printStackTrace();
+        }
+        catch (NumberFormatException|Database.DatabaseFormatException e)
+        {
+            display.displayMessage("Database is formatted improperly.", "Database Format Error");
+            e.printStackTrace();
+        }
     }
 
     public static void saveFlashcards()
     {
-        System.out.println("TODO: Save flashcards.");
+        try {
+            database.writeFlashcards(flashcards);
+        }
+        catch (IOException e) {
+            display.displayMessage("Error while writing flashcards.", "IO Error");
+            e.printStackTrace();
+        }
     }
     
     public static void deleteFlashcard(int index)
@@ -45,7 +78,18 @@ public class Arion
 
     public static void addFlashcard(String[] fields)
     {
-        System.out.println("TODO: Add flashcards.");
+        System.out.println("Adding flashcard.");
+        if (fields.length != 2)
+        {
+            display.displayMessage("Could not construct flashcards because field array is improperly sized.", "Flashcard Creation Error");
+            return;
+        }
+        
+        String front = fields[0];
+        String back = fields[1];
+        flashcards.add(new Flashcard(front, back));
+
+        enterMainScreen();
     }
 
     public static void studyFlashcards()
@@ -63,7 +107,6 @@ public class Arion
         System.out.println("TODO: Quit.");
     }
 
-
     private static void prepareMenuBar()
     {
         String[] menuTitles = new String[] { "File", "Edit", "View", "Help", "Quit" };
@@ -74,8 +117,7 @@ public class Arion
             { "Guide", "About" },
             { "Confirm?" },
         };
-        
-        final AddCallback    addCallback    =                         (String[] fields) -> addFlashcard(fields);
+
         final SortCallback   sortCallback   = (Flashcard.Field field, boolean reversed) -> sortFlashcards(field, reversed);
         final DeleteCallback deleteCallback =                               (int index) -> deleteFlashcard(index);
         final EditCallback   editCallback   =              (int index, String[] fields) -> editFlashcard(index, fields);

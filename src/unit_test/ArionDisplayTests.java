@@ -120,7 +120,7 @@ public class ArionDisplayTests
     private static void constructorTestCase(String title, int width, int height)
     {
         ArionDisplay display = new ArionDisplay(title, width, height);
-        display.refresh();
+        display._setVisible();
     }
 
     private static void menuBarTestCase(String[] menuTitles, String[][] actions, Runnable[][] callbacks)
@@ -132,7 +132,7 @@ public class ArionDisplayTests
     {
         ArionDisplay display = new ArionDisplay(title, 800, 600);
         display.displayMenuBar(menuTitles, actions, callbacks);
-        display.refresh();
+        display._setVisible();
     }
 
     private static void parseNouns()
