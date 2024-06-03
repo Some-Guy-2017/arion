@@ -7,48 +7,64 @@
 
 package arion;
 
+import arion.Flashcard;
 import callback.*;
 
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
 import java.awt.geom.AffineTransform;
+import java.text.Format;
 import java.util.ArrayList;
 
-public class ArionDisplay
-{
-    private class FontSize
-    {
-        public final static float HEADER_SIZE = 25f;
-        public final static float PARAGRAPH_SIZE = 17f;
-        //public final static float PARAGRAPH_SIZE = 5f;
-    }
-    
-    final static int MARGIN_SIZE = 20;
-    final static int COMPONENT_PADDING = 10;
-    final static int HEADER_PADDING = 20;
-    final static int TEXT_FIELD_WIDTH = 50;
-    final static int TEXT_AREA_HEIGHT = 20;
-
-    final static Dimension BUTTON_SIZE = new Dimension(300, 40);
-    
+public class ArionDisplay {
     JFrame frame;
 
     private int width;
     private int height;
+
+    private Runnable addCallback;
+    private Runnable studyCallback;
     
-    public ArionDisplay(String title, int width, int height)
-    {
-        if (width < 0 || height < 0)
-        {
-            System.out.println("WARNING: Could not construct JFrame because of invalid width and height values.");
+    static class Style {
+        public int fontStyle;
+        public float fontSize;
+        public int padding;
+
+        public Style(int fontStyle, float fontSize, int padding) {
+            this.fontStyle = fontStyle;
+            this.fontSize = fontSize;
+            this.padding = padding;
+        }
+    }
+    
+    static class Format {
+        final static Style H1 = new Style(Font.BOLD, 25f, 20);
+        final static Style H2 = new Style(Font.BOLD, 16f, 15);
+        final static Style COMPONENT = new Style(Font.PLAIN, 14f, 10);
+        final static Style STUDY_TEXT = new Style(Font.PLAIN, 18f, 10);
+        
+        final static int MARGIN_SIZE = 20;
+        final static int TEXT_BOX_WIDTH = 50;
+        final static int TEXT_AREA_ROWS = 20;
+        final static int TABLE_CELL_PADDING = 2;
+        final static Dimension BUTTON_SIZE = new Dimension(300, 40);
+    }
+
+    private EditCallback editCallback;
+    private DeleteCallback deleteCallback;
+    private ArrayList<Flashcard> browseFlashcards;
+    
+    public ArionDisplay(String title, int width, int height) {
+
+        if (width < 0 || height < 0) {
+            System.out.println("WARNING: Cannot construct JFrame because of invalid width and height values.");
             System.out.println("WARNING: Setting width and height values to 0.");
             width = 0;
             height = 0;
         }
 
-        if (title == null)
-        {
+        if (title == null) {
             System.out.println("WARNING: Title not provided; setting title to empty string.");
             title = "";
         }
@@ -60,144 +76,254 @@ public class ArionDisplay
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         frame.setSize(width, height);
         frame.setLocationRelativeTo(null);
+        frame.setVisible(true);
     }
 
-    public void displayMenuBar(String[] menuTitles, String[][] actions, Runnable[][] callbacks)
-    {
-        if (menuTitles == null || actions == null || callbacks == null)
-        {
-            displayMessage("displayMenuBar parameters are null.", "MenuBar Error");
-            return;
-        }
+    public void displayMenuBar(String[] menuTitles, String[][] actions, Runnable[][] callbacks) {
         
+        if (menuTitles == null || actions == null || callbacks == null)
+            throw new NullPointerException("Cannot construct menu because received a null parameter.");
         if (menuTitles.length != actions.length || menuTitles.length != callbacks.length)
-        {
-            displayMessage("Could not construct menu because menu titles, actions, and callbacks are not equally sized.", "MenuBar Error");
-            return;
-        }
+            throw new IllegalArgumentException("Cannot construct menu because menu titles, actions, and callbacks are not equally sized.");
+        
         int menuCount = menuTitles.length;    
-
         if (menuCount == 0)
-        {
-            displayMessage("Menu is empty, so it will not render.", "MenuBar Empty");
-        }
+            System.out.println("WARNING: Menu is empty, so it will not render.");
 
         JMenuBar menuBar = new JMenuBar();
         frame.setJMenuBar(menuBar); 
         
-        for (int menuIdx = 0; menuIdx < menuCount; menuIdx++)
-        {
+        for (int menuIdx = 0; menuIdx < menuCount; menuIdx++) {
             String menuActions[] = actions[menuIdx];
             Runnable[] menuCallbacks = callbacks[menuIdx];
             
             if (menuActions.length != menuCallbacks.length)
-            {
-                displayMessage("Could not construct menu because menu actions and callbacks are different lengths at index " + menuIdx + ".", "MenuBar Error");
-                return;
-            }
+                throw new IllegalArgumentException("Cannot construct menu because menu actions and callbacks are different lengths at index " + menuIdx + ".");
             
             JMenu menu = new JMenu(menuTitles[menuIdx]);
             menuBar.add(menu);
             
             int actionCount = menuActions.length;
-            for (int actionIdx = 0; actionIdx < actionCount; actionIdx++)
-            {
+            for (int actionIdx = 0; actionIdx < actionCount; actionIdx++) {
                 String action = menuActions[actionIdx];
                 JMenuItem menuItem = new JMenuItem(action);
                 menu.add(menuItem);
                 
                 Runnable callback = menuCallbacks[actionIdx];
-                menuItem.addActionListener((ActionEvent e) -> callback.run());
+                menuItem.addActionListener(generateActionListener(callback));
             }
         }
     }
 
-    // makes the component ready for displaying;
-    // it aligns the component in the center, and sets the font style and size
-    private void makeDisplayReady(JComponent component, int fontStyle, float fontSize)
-    {
-        component.setAlignmentX(JComponent.CENTER_ALIGNMENT);
-        component.setFont(component.getFont().deriveFont(fontStyle, fontSize));
-        component.setMaximumSize(component.getPreferredSize());
+    public void displayMainScreen(Runnable addCallback, Runnable studyCallback) {
+        if (addCallback == null || studyCallback == null)
+            throw new NullPointerException("Could not display main screen because passed callbacks are null.");
+        this.addCallback = addCallback;
+        this.studyCallback = studyCallback;
+        
+        JPanel panel = generateMainPanel("Main Screen");
+        
+        JButton studyButton = generateButton("Study");
+        studyButton.addActionListener(generateActionListener(studyCallback));
+        addPanelComponent(panel, studyButton, Format.COMPONENT, false);
+        
+        JButton addButton = generateButton("Add");
+        addButton.addActionListener(generateActionListener(addCallback));
+        addPanelComponent(panel, addButton, Format.COMPONENT, true);
+        
+        setFrameContent(panel);
     }
 
-    private JButton generateButton(String text)
-    {
-        JButton button = new JButton(text);
-        button.setPreferredSize(BUTTON_SIZE);
-        makeDisplayReady(button, Font.PLAIN, FontSize.PARAGRAPH_SIZE);
-        return button;
+    public void displayBrowseScreen(ArrayList<Flashcard> flashcards, EditCallback editCallback, DeleteCallback deleteCallback) {
+        if (flashcards == null || editCallback == null || deleteCallback == null)
+            throw new NullPointerException("Could not display browse screen because passed callbacks are null.");
+        
+        this.browseFlashcards = flashcards;
+        this.editCallback = editCallback;
+        this.deleteCallback = deleteCallback;
+        renderBrowseScreen();
     }
 
-    public void displayMainScreen(Runnable addCallback, Runnable studyCallback)
-    { 
+    public void displayAddScreen(AddCallback callback) {
+        if (callback == null)
+            throw new NullPointerException("Could not display add screen because passed callback is null.");
+        
+        JPanel panel = generateMainPanel("Add");
+        
+        JLabel frontLabel = new JLabel("Front");
+        addPanelComponent(panel, frontLabel, Format.H2, false);
+        
+        JTextField frontTextField = new JTextField(Format.TEXT_BOX_WIDTH);
+        addPanelComponent(panel, frontTextField, Format.COMPONENT, false);
+
+        JLabel backLabel = new JLabel("Back");
+        addPanelComponent(panel, backLabel, Format.H2, false);
+        
+        int backWidth = frontTextField.getPreferredSize().width; // make the back and front text boxes the same width
+        JScrollPane backTextArea = generateTextArea(backWidth);
+        addPanelComponent(panel, backTextArea, Format.COMPONENT, false);
+        
+        JButton addButton = generateButton("Add Flashcard");
+        addButton.addActionListener(generateActionListener(() -> {
+            String[] fields = { frontTextField.getText(), ((JTextArea) backTextArea.getViewport().getView()).getText() };
+            callback.run(fields);
+            reenterMainScreen();
+        }));
+        addPanelComponent(panel, addButton, Format.COMPONENT, true);
+
+        setFrameContent(panel);
+    }
+
+    public void displayStudyScreen(Flashcard flashcard, boolean front, ReviewCallback reviewCallback) {
+        if (flashcard == null || reviewCallback == null)
+            throw new NullPointerException("Could not display study screen because passed parameter is null.");
+        
+        JPanel panel = generateMainPanel("Study");
+        
+        String text;
+        if (front) text = flashcard.front;
+        else text = flashcard.back;
+        
+        JLabel textLabel = new JLabel(text);
+        addPanelComponent(panel, textLabel, Format.STUDY_TEXT, false);
+
+        JPanel bar = new JPanel();
+        bar.setLayout(new BoxLayout(bar, BoxLayout.X_AXIS));
+        bar.add(Box.createGlue());
+
+        if (front) {
+            JButton flipButton = generateButton("Flip");
+            addPanelComponent(bar, flipButton, Format.COMPONENT, true);
+
+            flipButton.addActionListener((ActionEvent e) -> displayStudyScreen(flashcard, false, reviewCallback));
+        }
+        else {
+            JButton correctButton = generateButton("Correct");
+            addPanelComponent(bar, correctButton, Format.COMPONENT, false);
+            correctButton.addActionListener((ActionEvent e) -> reviewCallback.run(true));
+            
+            JButton incorrectButton = generateButton("Incorrect");
+            addPanelComponent(bar, incorrectButton, Format.COMPONENT, true);
+            incorrectButton.addActionListener((ActionEvent e) -> reviewCallback.run(false));
+        }
+        
+        bar.add(Box.createGlue());
+
+        panel.add(Box.createVerticalGlue());
+        addPanelComponent(panel, bar, Format.H1, true);
+
+        setFrameContent(panel);
+    }
+    
+    public void displaySortScreen(SortCallback sortCallback) {
+        JPanel panel = generateMainPanel("Sort");
+
+        JComboBox fieldSelector = new JComboBox<Flashcard.Field>(Flashcard.FIELDS);
+        
+        String[] directions = {"Forwards", "Backwards"};
+        JComboBox directionSelector = new JComboBox<String>(directions);
+        
+        JComboBox[] comboBoxes = {
+            fieldSelector,
+            directionSelector,
+        };
+        
+        int maxWidth = -1;
+        for (JComboBox comboBox : comboBoxes) {
+            int width = comboBox.getPreferredSize().width;
+            if (width > maxWidth) maxWidth = width;
+        }
+
+        for (JComboBox comboBox : comboBoxes) {
+            int height = comboBox.getPreferredSize().height;
+            comboBox.setPreferredSize(new Dimension(maxWidth, height));
+            addPanelComponent(panel, comboBox, Format.COMPONENT, false);
+        }
+
+        JButton confirmButton = generateButton("Sort");
+        confirmButton.addActionListener((ActionEvent e) -> {
+            Flashcard.Field field = (Flashcard.Field) fieldSelector.getSelectedItem();
+            boolean reversed = directionSelector.getSelectedIndex() == 1; // reversing direction is index 1
+            sortCallback.run(field, reversed);
+            reenterMainScreen();
+        });
+        addPanelComponent(panel, confirmButton, Format.COMPONENT, true);
+
+        setFrameContent(panel);
+    }
+
+    public void displayGuidePage(int page) {
+        System.out.println("TODO: Display guide page.");
+    }
+    
+    public void displayAboutScreen() {
+        System.out.println("TODO: Display About screen.");
+    }
+
+    public void displayWarningMessage(String message) {
+        if (message == null)
+            throw new NullPointerException("Could not display warning message because message is null.");
+        
+        displayMessage("WARNING: " + message, "Warning Message");
+    }
+    
+    public void displayMessage(String message) {
+        if (message == null) throw new NullPointerException("Could not display message because parameter is null.");
+        displayMessage(message, "");
+    }
+
+    public void displayMessage(String message, String title) {
+        if (message == null || title == null)
+            throw new NullPointerException("Could not display message because message or title is null.");
+        
+        JOptionPane.showMessageDialog(frame, message, title, JOptionPane.INFORMATION_MESSAGE);
+    }
+
+    public static void alert(String message) {
+        if (message == null) throw new NullPointerException("Could not alert because message is null.");
+        JOptionPane.showMessageDialog(null, message);
+    }
+
+    public boolean displayConfirmationWindow(String message, String title) {
+        return JOptionPane.showConfirmDialog(frame, message, title, JOptionPane.YES_NO_OPTION) == JOptionPane.YES_OPTION;
+    }
+
+    public void quit() {
+        frame.setVisible(false);
+        frame.dispose();
+    }
+
+    public void displaySuccessScreen() {
+        JPanel panel = generateMainPanel("Congratulations!");
+        
+        JLabel text = new JLabel("All due flashcards have been studied.");
+        addPanelComponent(panel, text, Format.COMPONENT, false);
+
+        JButton returnButton = generateButton("Return to Main Screen");
+        returnButton.addActionListener((ActionEvent e) -> reenterMainScreen());
+        addPanelComponent(panel, returnButton, Format.COMPONENT, true);
+
+        setFrameContent(panel);
+    }
+
+    private JPanel generateMainPanel(String screenName) {
         JPanel panel = new JPanel();
         panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
         
-        JLabel label = new JLabel("Main Screen");
-        makeDisplayReady(label, Font.BOLD, FontSize.HEADER_SIZE);
+        JLabel header = new JLabel(screenName);
+        addPanelComponent(panel, header, Format.H1, false);
         
-        JButton studyButton = generateButton("Study");
-        studyButton.addActionListener((ActionEvent e) -> studyCallback.run());
+        return panel;
+    }
+    
+    private void setFrameContent(JPanel panel) {
         
-        JButton addButton = generateButton("Add");
-        addButton.addActionListener((ActionEvent e) -> addCallback.run());
-        
-        addPanelComponent(panel, label, HEADER_PADDING);
-        addPanelComponent(panel, studyButton, COMPONENT_PADDING);
-        addPanelComponent(panel, addButton, COMPONENT_PADDING);
-        panel.add(Box.createGlue());
-            
-        setFrameContent(panel);
-
-    }
-
-    private void addPanelComponent(JPanel panel, JComponent component, int padding)
-    {
-        panel.add(component);
-        panel.add(Box.createRigidArea(new Dimension(0, padding)));
-    }
-
-    /*
-    // sets the component's font to be proportional to its size
-    // code modified based on:
-    // https://stackoverflow.com/questions/19989683/using-an-affline-transformation-to-set-font-size-to-be-proportional-to-its-conta
-    private void setProportionalFont(JComponent component, String text, Dimension boundingSize)
-    {
-        Font font = component.getFont();
-        FontMetrics fontMetrics = component.getFontMetrics(font);
-
-        int fontWidth = fontMetrics.stringWidth(text);
-        int fontHeight = fontMetrics.getHeight();
-        double xscale = boundingSize.getWidth()  / fontWidth;
-        double yscale = boundingSize.getHeight() / fontHeight;
-
-        double scale = 0.0;
-        if (xscale < yscale) scale = xscale;
-        else                 scale = yscale;
-        scale *= FONT_PROPORTION;
-
-        Font newFont = font.deriveFont(AffineTransform.getScaleInstance(scale, scale));
-        component.setFont(newFont);
-
-    }
-
-    private void setProportionalFont(JComponent component, String text)
-    {
-        Dimension componentSize = new Dimension();
-        component.getSize(componentSize);
-        setProportionalFont(component, text, componentSize);
-    }
-    */
-
-    private void setFrameContent(JPanel panel)
-    {
         // add margin
         panel.setBorder(BorderFactory.createEmptyBorder(
-            MARGIN_SIZE,
-            MARGIN_SIZE,
-            MARGIN_SIZE,
-            MARGIN_SIZE
+            Format.MARGIN_SIZE,
+            Format.MARGIN_SIZE,
+            Format.MARGIN_SIZE,
+            Format.MARGIN_SIZE
         ));
         
         Container contentPane = frame.getContentPane();
@@ -205,114 +331,144 @@ public class ArionDisplay
         contentPane.add(panel);
         
         frame.validate();
-        frame.setVisible(true);
     }
-    
-    public void displayBrowseScreen(ArrayList<Flashcard> flashcards, EditCallback editCallback, DeleteCallback deleteCallback)
-    {
-        JPanel panel = new JPanel();
-        panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
 
-        JLabel header = new JLabel("Browse");
-        makeDisplayReady(header, Font.BOLD, FontSize.HEADER_SIZE);
-        addPanelComponent(panel, header, HEADER_PADDING);
+    private JScrollPane generateTable(String[] columnNames, String[][] data) {
+        JTable table = new JTable(data, columnNames);
+        setFont(table.getTableHeader(), Format.H2); // set table header font
+        setFont(table, Format.COMPONENT);           // set table content font
+        
+        // set row height to match font size and text padding
+        table.setRowHeight((int) Format.COMPONENT.fontSize + Format.TABLE_CELL_PADDING * 2);
 
-        String[] columnNames = Flashcard.fieldNames;
-        String[][] tableData = new String[flashcards.size()][];
-        for (int i = 0; i < flashcards.size(); i++) tableData[i] = flashcards.get(i).toStringArray();
-        JTable table = new JTable(tableData, columnNames);
-
+        // wrap the table in a scroll pane, in case it exceeds the size of the panel
         JScrollPane scrollPane = new JScrollPane(
             table,
             JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,
             JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
-        Dimension prevSize = scrollPane.getMaximumSize();
-        makeDisplayReady(scrollPane, Font.PLAIN, FontSize.PARAGRAPH_SIZE);
-        addPanelComponent(panel, scrollPane, COMPONENT_PADDING);
-        scrollPane.setMaximumSize(prevSize);
-
-        panel.add(Box.createGlue());
-        setFrameContent(panel);
-    }
-
-    private JScrollPane makeTextAreaDisplayReady(JTextArea textArea, int width)
-    {
-        textArea.setRows(TEXT_AREA_HEIGHT);
-        textArea.setLineWrap(true);
-        textArea.setWrapStyleWord(true);
-        makeDisplayReady(textArea, Font.PLAIN, FontSize.PARAGRAPH_SIZE);
         
+        return scrollPane;
+    }
+    
+    private JScrollPane generateTextArea(int width) {
+        JTextArea textArea = new JTextArea();
+        textArea.setRows(Format.TEXT_AREA_ROWS); // set the appropriate number of text rows
+        textArea.setLineWrap(true);              // wrap lines when they exceed the text box length
+        textArea.setWrapStyleWord(true);         // wrap words - do not wrap text mid-word
+        setFont(textArea, Format.COMPONENT);
+        
+        // wrap the text area in a scroll pane, since the text can exceed the text area dimensions
         JScrollPane scrollPane = new JScrollPane(
                 textArea,
                 JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,
                 JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
-        Dimension size = new Dimension(width, textArea.getPreferredSize().height);
-        scrollPane.setMaximumSize(size);
+        Dimension newSize = scrollPane.getPreferredSize();
+        newSize.width = width;
+        scrollPane.setPreferredSize(newSize);
 
         return scrollPane;
     }
 
-    public void displayAddScreen(AddCallback callback)
-    {
-        JPanel panel = new JPanel();
-        panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
-        
-        JLabel header = new JLabel("Add");
-        makeDisplayReady(header, Font.BOLD, FontSize.HEADER_SIZE);
-        addPanelComponent(panel, header, HEADER_PADDING);
-        
-        JLabel frontLabel = new JLabel("Front");
-        makeDisplayReady(frontLabel, Font.PLAIN, FontSize.PARAGRAPH_SIZE);
-        addPanelComponent(panel, frontLabel, COMPONENT_PADDING);
-        
-        JTextField frontTextField = new JTextField(TEXT_FIELD_WIDTH);
-        makeDisplayReady(frontTextField , Font.PLAIN, FontSize.PARAGRAPH_SIZE);
-        addPanelComponent(panel, frontTextField, COMPONENT_PADDING);
+    private JButton generateButton(String text) {
+        JButton button = new JButton(text);
+        button.setPreferredSize(Format.BUTTON_SIZE);
+        return button;
+    }
 
-        JLabel backLabel = new JLabel("Back");
-        makeDisplayReady(backLabel, Font.PLAIN, FontSize.PARAGRAPH_SIZE);
-        addPanelComponent(panel, backLabel, COMPONENT_PADDING);
+    private void setFont(JComponent component, Style style) {
+        Font newFont = component.getFont().deriveFont(style.fontStyle, style.fontSize);
+        component.setFont(newFont);
+    }
+    
+    private void addPanelComponent(JPanel panel, JComponent component, Style style, boolean lastComponent) {
         
-        // add back text area, surrounded in scroll pane
-        JTextArea backTextArea = new JTextArea();
-        JScrollPane backScrollPane = makeTextAreaDisplayReady(backTextArea, frontTextField.getPreferredSize().width);
-        addPanelComponent(panel, backScrollPane, COMPONENT_PADDING);
+        // null dimension signifies using preferred size after font adjustments are made (these can change preferred size)
+        addPanelComponent(panel, component, null, style, lastComponent);
+    }
+    
+    // add a component to the panel, but allow for deciding of its maximum size
+    private void addPanelComponent(JPanel panel, JComponent component, Dimension maxSize, Style style, boolean lastComponent) {
         
-        JButton addButton = generateButton("Add Flashcard");
-        addButton.addActionListener((ActionEvent e) -> {
-            String[] fields = { frontTextField.getText(), backTextArea.getText() };
-            callback.run(fields);
-        });
-        addPanelComponent(panel, addButton, COMPONENT_PADDING);
+        // format the component properly for displaying; center it, set its font, and force the layout manager to use the preferred size
+        component.setAlignmentX(JComponent.CENTER_ALIGNMENT);
+        component.setAlignmentY(JComponent.CENTER_ALIGNMENT);
+        setFont(component, style);
+        
+        if (maxSize == null) maxSize = component.getPreferredSize();
+        component.setMaximumSize(maxSize);
+        
+        panel.add(component);
+        if (!lastComponent) panel.add(Box.createRigidArea(new Dimension(style.padding, style.padding)));
+    }
+     
+    private void renderBrowseScreen() {
+        JPanel panel = generateMainPanel("Browse");
+        
+        String[] columnNames = Flashcard.FIELD_TITLES;
+        String[][] tableData = new String[browseFlashcards.size()][];
+        for (int i = 0; i < browseFlashcards.size(); i++)
+            tableData[i] = browseFlashcards.get(i).toStringArray();
 
-        panel.add(Box.createGlue());
+        JScrollPane tableScrollPane = generateTable(columnNames, tableData);
+        JTable table = (JTable) tableScrollPane.getViewport().getView();
+        Dimension tableSize = new Dimension(Integer.MAX_VALUE, Integer.MAX_VALUE); // allow the table to be arbitrarily large
+        
+        JPanel buttonPanel = new JPanel();
+        buttonPanel.setLayout(new BoxLayout(buttonPanel, BoxLayout.X_AXIS));
+        
+        // track the previous data to only update changed browseFlashcards
+        String[][] prevData = new String[tableData.length][];
+        for (int i = 0; i < tableData.length; i++) prevData[i] = tableData[i].clone();
+        
+        JButton updateButton = generateButton("Update Flashcards");
+        updateButton.addActionListener(generateActionListener(() -> {
+            sendUpdatedFlashcards(tableData, prevData, editCallback);
+            renderBrowseScreen(); // re-render the screen with the updated browseFlashcards
+        }));
+        addPanelComponent(buttonPanel, updateButton, Format.COMPONENT, false);
+        
+        JButton deleteButton = generateButton("Delete Flashcard");
+        deleteButton.addActionListener(generateActionListener(() -> {
+            boolean confirmation = displayConfirmationWindow("Delete Flashcards?", "Delete Confirmation");
+            if (confirmation) deleteCallback.run(table.getSelectedRows());
+            renderBrowseScreen(); // re-render the screen with the updated browseFlashcards
+        }));
+        addPanelComponent(buttonPanel, deleteButton, Format.COMPONENT, true);
+        
+        addPanelComponent(panel, tableScrollPane, tableSize, Format.COMPONENT, false);
+        addPanelComponent(panel, buttonPanel, Format.COMPONENT, true);
         setFrameContent(panel);
     }
-    
-    public void displaySortScreen(SortCallback sortCallback)
-    {
-        System.out.println("TODO: Display sort screen.");
+
+    private void sendUpdatedFlashcards(String[][] tableData, String[][] prevData, EditCallback editCallback) {
+        if (tableData.length != prevData.length)
+            throw new IllegalArgumentException("Cannot update flashcards because data is improperly sized.");
+        
+        for (int i = 0; i < tableData.length; i++) {
+            boolean tableValid = tableData[i].length == Flashcard.FIELD_COUNT;
+            boolean prevValid = prevData[i].length == Flashcard.FIELD_COUNT;
+            
+            if (!tableValid | !prevValid)
+                throw new IllegalArgumentException("Cannot update flashcard at index " + i + " because the data is improperly sized.");
+            
+            for (int j = 0; j < Flashcard.FIELD_COUNT; j++) {
+                if (!tableData[i][j].equals(prevData[i][j])) editCallback.run(i, tableData[i]);
+            }
+            prevData[i] = tableData[i].clone(); // update the previous data
+        }
     }
 
-    public void displayGuidePage(int page)
-    {
-        System.out.println("TODO: Display guide page.");
-    }
-    
-    public void displayAboutScreen()
-    {
-        System.out.println("TODO: Display about screen.");
-    }
-
-    public void displayMessage(String message, String title)
-    {
-        JOptionPane.showMessageDialog(frame, message, title, JOptionPane.INFORMATION_MESSAGE);
+    private ActionListener generateActionListener(Runnable onRun) {
+        return (ActionEvent e) -> {
+            try {
+                onRun.run();
+            } catch (Exception exception) {
+                Arion.displayException(exception);
+            }
+        };
     }
 
-    // used for debugging purposes; sets the display to be visible, without necessarily requiring content
-    public void _setVisible()
-    {
-        frame.setVisible(true);
+    private void reenterMainScreen() {
+        displayMainScreen(addCallback, studyCallback);
     }
-    
 }

@@ -1,0 +1,429 @@
+CLASS Arion
+    START Arion()
+        SET flashcards to empty array
+        INITIALIZE dueFlashcards
+        CALL Database with "./flashcards.txt"
+        SET database to return value
+        SET display to ArionDisplay
+        SET studyIndex to 0
+
+        SET menuTitles to "File", "Edit", "View", "Help", and "Quit"
+        SET actions to "Load", "Save", "Browse", "Add", "Study", "Sort", "Guide", "About", and "Confirm?"
+        SET editCallback to CALL editFlashcard
+        SET deleteCallback to CALL deleteFlashcard
+        SET addCallback to CALL addFlashcard
+        SET sortCallback to CALL sortFlashcards
+        SET callbacks to:
+            - CALL loadFlashcards
+            - CALL saveFlashcards
+            - CALL display.displayBrowseScreen with flashcards, editCallback, and deleteCallback
+            - CALL display.displayAddScreen with addCallback
+            - CALL studyFlashcards
+            - CALL display.displaySortScreen with sortCallback
+            - CALL display.displayGuidePage with 0
+            - CALL display.displayAboutScreen
+            - CALL quit
+
+        CALL display.displayMenuBar with menuTitles, actions, and callbacks
+        CALL display.displayMainScreen with addCallback and studyCallback
+    END
+    
+    START loadFlashcards()
+        CALL confirmOverwrite
+        SET confirmation to return value
+        IF confirmation THEN
+            CALL Database.readFlashcards
+            SET flashcards to return value
+        ENDIF
+    END
+
+    START confirmOverwrite()
+        CALL display.displayConfirmationWindow with "Overwrite Flashcards?" and "Overwrite Confirmation"
+        SET confirmation to return value
+        RETURN confirmation
+    END
+
+    START saveFlashcards()
+        CALL confirmOverwrite
+        SET confirmation to return value
+        IF confirmation THEN
+            CALL Database.saveFlashcards with flashcards
+        ENDIF
+    END
+
+    START deleteFlashcard(index)
+        CALL display.displayConfirmationWindow with "Delete Flashcard?" and "Deletion Confirmation"
+        SET confirmation to return value
+        IF confirmation THEN
+            REMOVE flashcard at index
+        ENDIF
+    END
+
+    START editFlashcard(fields, index)
+        CALL Flashcard.fromStringArray with fields
+        SET flashcard to return value
+        SET flashcards at index to flashcard
+    END
+
+    START addFlashcard(fields)
+        CALL Flashcard.fromStringArray with fields
+        SET flashcard to return value
+        APPEND flashcard to flashcards
+    END
+
+    START studyFlashcards()
+        SET dueFlashcards to empty flashcard list
+        FOR each flashcard in flashcards
+            CALL flashcard.isDue
+            SET isDue to return value
+            IF isDue THEN
+                APPEND flashcard to dueFlashcards
+            ENDIF
+        ENDFOR
+
+        IF dueFlashcards is empty THEN
+            CALL display.displayMessage with "No Flashcards Due", and "Study Message"
+            RETURN
+        ENDIF
+
+        SET studyIndex to 0
+        CALL display.displayStudyScreen with flashcard, true, and reviewCallback
+    END
+
+    START reviewCallback.run(success)
+        SET flashcard to dueFlashcards at index studyIndex
+        CALL flashcard.updateReviewDate with success
+        INCREMENT studyIndex
+
+        IF studyIndex >= length of dueFlashcards THEN
+            RETURN
+        ENDIF
+        
+        CALL display.displayStudyScreen with flashcard, true, and reviewCallback
+    END
+
+    START sortFlashcards(flashcardField, reversed)
+        CALL mergeSort with flashcardField, reversed, flashcards, 0, and length of flashcards array
+        SET flashcards to return value
+    END
+
+    START mergeSort(flashcardField, reversed, flashcards, start, end)
+        SET length to end - start 
+        IF length equals 1 THEN
+            INITIALIZE sorted
+            APPEND flashcards at index start to sorted
+            RETURN sorted
+        ELSE IF length equals 2 THEN
+            INITIALIZE sorted
+            CALL compare with flashcardField, reversed, flashcards at index start, and flashcards at index start + 1
+            SET ordered to return value
+            IF ordered THEN
+                SET sorted to flashcards at index 0, flashcards at index 1
+            ELSE
+                SET sorted to flashcards at index 1, flashcards at index 0
+            ENDIF
+            RETURN sorted
+        ENDIF
+
+        SET mid to (start + end) / 2
+        CALL mergeSort with flashcardField, reversed, flashcards, start, and mid
+        SET left to return value
+        CALL mergeSort with flashcardField, reversed, flashcards, mid, and end
+        SET right to return value
+
+        INITIALIZE sorted
+        WHILE there are items in right or left
+            INITIALIZE chooseLeft
+            IF left is empty THEN
+                SET chooseLeft to false
+            ELSE IF right is empty:
+                SET chooseLeft to true
+            ELSE
+                CALL compare with flashcardField, reversed, first item in left, and first item in right
+                SET chooseLeft to return value
+            ENDIF
+
+            IF chooseLeft THEN
+                MOVE first item in left to sorted
+            ELSE
+                MOVE first item in right to sorted
+            ENDIF
+        ENDWHILE
+
+        RETURN sorted
+    END
+    
+    START compare(flashcardField, reversed, item1, item2)
+        IF flashcardField is Front THEN
+            SET comparisonItem1 to item1.front
+            SET comparisonItem2 to item2.front
+        ELSE IF flashcardField is Back THEN
+            SET comparisonItem1 to item1.back
+            SET comparisonItem2 to item2.back
+        ENDIF
+
+        INITIALIZE comparison
+        IF flashcardField is Front OR Back THEN
+            COMPARE comparisonItem1 to comparisonItem2 lexographically
+            SET comparison to result
+        ELSE IF flashcardField is ReviewDate THEN
+            SET comparison to item1.reviewDate in seconds - item2.reviewDate in seconds
+        ELSE IF flashcardField is ReviewInterval THEN
+            SET comparison to item1.reviewInterval in days - item2.reviewInterval in days
+        ENDIF
+        
+        IF reversed THEN
+            MULTIPLY comparison by -1
+        ENDIF
+        RETURN comparison >= 0
+    END
+
+    START quit()
+        CALL display.quit
+    END
+
+    START main()
+        SET arion to Arion
+    END
+ENDCLASS
+
+CLASS ArionDisplay
+    START ArionDisplay()
+        INITIALIZE frame
+        INITIALIZE pages
+        CALL parseGuide with "./guide.xml"
+        SET aboutFilepath to "./about.txt"
+    END
+    
+    START displayMenuBar(menuTitles, actions, callbacks)
+        INITIALIZE menuBar
+        FOR menuTitle in menuTitles
+            INITIALIZE menu
+            SET menu.title to menuTitle
+            FOR action, callback in actions, callbacks
+                ADD callback to action
+                ADD action to menu
+            ENDFOR
+            ADD menu to menuBar
+        ENDFOR
+
+        ADD menuBar to frame
+    END
+    
+    START displayBrowseScreen(flashcards, deleteCallback, editCallback)
+        GENERATE table from flashcards
+        ADD table to frame
+        
+        INITIALIZE deleteButton
+        ADD deleteCallback to deleteButton
+        ADD deleteButton to frame
+
+        SET prevData to clone of table.data
+        SET updateCallback to CALL sendUpdatedFlashcards with table.data, prevData, and editCallback
+        INITIALIZE editButton
+        ADD updateCallback to editButton
+        ADD editButton to frame
+    END
+
+    START sendUpdatedFlashcards(tableData, prevData, editCallback)
+        FOR tableFlashcard, prevFlashcard in tableData, prevData
+            IF tableFlashcard does not equal prevFlashcard THEN
+                CALL editCallback with tableFlashcard
+            ENDIF
+        ENDFOR
+    END
+    
+    START displayMainScreen(addCallback, studyCallback)
+        INITIALIZE studyButton
+        ADD studyCallback to studyButton
+        ADD studyButton to frame
+        
+        INITIALIZE addButton
+        ADD addCallback to addButton
+        ADD addButton to frame
+    END
+    
+    START displayStudyScreen(flashcard, front, callback)
+        INITIALIZE bar
+        
+        IF front THEN
+            ADD flashcard.front to frame
+            SET buttonCallback to CALL displayStudyScreen with flashcard, false, and callback
+            INITIALIZE flipButton
+            ADD buttonCallback to flipButton
+            ADD flipButton to bar
+        ELSE
+            ADD flashcard.back to frame
+            SET correctCallback to CALL callback with true
+            SET incorrectCallback to CALL callback with false
+
+            INITIALIZE correctButton
+            ADD correctCallback to correctButton
+            ADD correctButton to bar
+            
+            INITIALIZE incorrectButton
+            ADD incorrectCallback to incorrectButton
+            ADD incorrectButton to bar
+        ENDIF
+        
+        ADD bar to frame
+    END
+    
+    START displaySortScreen(sortCallback)
+        INITIALIZE fieldDropdown
+        ADD "Front", "Back", "Date", and "Interval" to fieldDropdown
+        ADD fieldDropdown to frame
+        
+        INITIALIZE directionDropdown
+        ADD "Forward" and "Reversed" to directionDropdown
+        ADD directionDropdown to frame
+        
+        SET buttonCallback to CALL sortCallback with fieldDropdown.selection and directionDropdown.selection
+        INITIALIZE sortButton
+        ADD buttonCallback to sortButton
+        ADD sortButton to frame
+    END
+    
+    START displayGuidePage(pageNum)
+        CREATE pop-up window
+        SET page to pages at pageNum
+        FOR element in page
+            ADD element to pop-up window
+        ENDFOR
+
+        IF pageNum < length of pages - 1 THEN
+            SET nextCallback to CALL displayGuidePage with pageNum + 1
+            INITIALIZE nextButton
+            ADD nextCallback to nextButton
+            ADD nextButton to pop-up window
+        ENDIF
+        IF pageNum > 0 THEN
+            SET prevCallback to CALL displayGuidePage with pageNum - 1
+            INITIALIZE prevButton
+            ADD prevCallback to prevButton
+            ADD prevButton to pop-up window
+        ENDIF
+    END
+    
+    START displayAboutScreen()
+        CREATE pop-up window
+        READ aboutText from aboutFilepath
+        ADD aboutText to pop-up window
+    END
+    
+    START displayAddScreen(addCallback)
+        INITIALIZE frontTextBox
+        ADD frontTextBox to frame
+        
+        INITIALIZE backTextBox
+        ADD backTextBox to frame
+        
+        INITIALIZE addButton
+        ADD addCallback to addButton
+        ADD addButton to frame
+    END
+    
+    START displayMessage(message, title)
+        CREATE dialog box
+        SET title of box to title
+        ADD message to dialog
+    END
+    
+    START displayConfirmationWindow(message, title)
+        CREATE confirmation dialog box
+        SET title of box to title
+        ADD message to box
+
+        IF user clicks the confirm button
+            RETURN true
+        ELSE IF user clicks the decline button
+            RETURN false
+        ENDIF
+    END
+
+    START parseGuide(guideFilepath)
+        PARSE xmlDocument from guideFilepath
+        FOR page in xmlDocument
+            APPEND page to pages
+        ENDFOR
+    END
+    
+    START quit()
+        DESTROY frame
+    END
+ENDCLASS
+
+CLASS Database
+    START Database(filepath)
+        SET filepath to filepath
+    END
+    
+    START readFlashcards()
+        INITIALIZE flashcards
+        READ flashcardCount from filepath
+
+        READ text from filepath
+        FOR flashcardFields in text:
+            CALL flashcard.fromStringArray with flashcardFields
+            SET flashcard to return value
+            APPEND flashcard to flashcards
+        ENDFOR
+        
+        RETURN flashcards
+    END
+    
+    START writeFlashcards(flashcards)
+        WRITE flashcards.length to filepath
+        FOR flashcard in flashcards
+            CALL flashcard.toStringArray with flashcard
+            SET flashcard to return value
+            WRITE flashcard to filepath
+        ENDFOR
+    END
+
+ENDCLASS
+
+CLASS Flashcard
+    START Flashcard(front, back)
+        SET front to front
+        SET back to front
+        SET reviewDate to today
+        SET reviewInterval to 1 day
+    END
+    
+    START updateReviewDate(front, back)
+        MULTIPLY reviewInterval by 1.6
+        ROUND UP reviewInterval
+        SET reviewDate to reviewInterval + the current date
+    END
+    
+    START isDue(front, back)
+        RETURN NOT reviewDate is after today
+    END
+
+    START fromStringArray(stringArray)
+        INITIALIZE newFlashcard
+        
+        SET newFlashcard.front to stringArray at index 0
+        SET newFlashcard.back to stringArray at index 1
+        CONVERT stringArray at index 2 into date
+        SET newFlashcard.reviewDate to return value
+        CONVERT stringArray at index 3 into duration
+        SET newFlashcard.reviewInteval to return value
+        
+        RETURN newFlashcard
+    END
+    
+    START toStringArray()
+        INITIALIZE stringArray
+
+        SET stringArray at index 0 to front
+        SET stringArray at index 1 to back
+        CONVERT reviewDate into String
+        SET stringArray at index 2 to return value
+        CONVERT reviewInterval into String
+        SET stringArray at index 2 to return value
+        
+        RETURN stringArray
+    END
+ENDCLASS
