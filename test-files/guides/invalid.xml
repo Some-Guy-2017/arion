@@ -1,0 +1,251 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE guide [
+    <!ELEMENT guide (page*)>
+    <!ELEMENT page (txt|img|pair)*>
+    <!ATTLIST page name CDATA #REQUIRED>
+    <!ELEMENT pair ((txt|img),(txt|img))>
+    <!ELEMENT txt (#PCDATA|brk)*>
+    <!ELEMENT brk EMPTY>
+    <!ELEMENT img EMPTY>
+    <!ATTLIST img src CDATA #REQUIRED>
+    <!ATTLIST img scale CDATA "0.4">
+]>
+<guide>
+    <page name="Welcome!">
+        <txt>
+        This is the guide on how to use Arion!
+        It outlines the available features and how to use them.
+        </txt>
+        <pair>
+            <txt>
+            To advance to the next page, click the "Next" button in the bottom right.
+            </txt>
+            <img src="next.png"/>
+        </pair>
+        <pair>
+            <txt>
+            To go to a previous page, click the "Previous" button in the bottom left.
+            </txt>
+            <img src="previous.png"/>
+        </pair>
+        <pair>
+            <txt>
+            Finally, to close the guide altogether, click the "Close" button in between those two.
+            </txt>
+            <img src="close.png"/>
+        </pair>
+    </page>
+    <page name="Load">
+        <pair>
+            <txt>
+            Load reads any stored flashcards from the database, then loads them into memory.
+            To activate load, click the "Load" menu option in the "File" menu.
+            </txt>
+            <img src="load.png"/>
+        </pair>
+        <pair>
+            <txt>
+            Arion will display a prompt to overwrite the flashcards currently stored in memory.
+            Clicking "Yes" allows Arion to continue with the Load operation, while "No" stops the process.
+            </txt>
+            <img src="confirm-overwrite.png"/>
+        </pair>
+        <txt>
+        Finally, Arion attempts to read from the flashcard database file.
+        If it succeeds, the flashcards are read into its local memory, and can be viewed using the Browse feature.
+        Otherwise, a warning is displayed, and the process is aborted.
+        </txt>
+    </page>
+    <page name="Save">
+        <pair>
+            <txt>
+            Save writes the current flashcards in memory into the flashcard database file.
+            To activate it, click the "Save" menu option in the "File" menu.
+            </txt>
+            <img src="save.png"/>
+        </pair>
+        <pair>
+            <txt>
+            Arion will display a prompt to overwrite the flashcards stored in the database.
+            Clicking "Yes" allows Arion to proceed, while "No" aborts the process.
+            </txt>
+            <img src="confirm-overwrite.png"/>
+        </pair>
+        <txt>
+        Next, Arion checks whether it can write to the flashcard file.
+        If so, it overwrites the previous flashcards with the ones currently stored in memory, completing the Save process.
+        </txt>
+    </page>
+    <page name="Browse">
+        <pair>
+            <txt>
+            Browse displays the flashcards currently in memory in a table.
+            This table has editable fields, so flashcards can be edited.
+            To start the browse feature, click the "Browse" menu option in the "Edit" menu.
+            </txt>
+            <img src="browse.png"/>
+        </pair>
+        <pair>
+            <txt>
+            A table similar to the following will be displayed, containing the flashcards stored in memory:
+            </txt>
+            <img src="browse-table.png" scale="0.8"/>
+        </pair>
+        <pair>
+            <txt>
+            To edit a card's field, double click the entry, and enter its new value.
+            Then, press the "Update Flashcards" button to confirm the modifications.
+            </txt>
+            <img src="update.png" scale="0.7"/>
+        </pair>
+        <txt>
+        Setting the review date requires that the date entered is of the form "(Full month name) (Day of month), (Year)."
+        To enter a review interval, enter the number of desired days along with either "day" or "days."
+        However, the number of days cannot be negative.
+        </txt>
+        <pair>
+            <txt>
+            To delete flashcards, select them in the table.
+            Then, pres the "Delete Flashcard button" to confirm the deletion.
+            </txt>
+            <img src="delete.png" scale="0.7"/>
+        </pair>
+    </page>
+    <page name="Add">
+        <pair>
+            <txt>
+            The add function allows users add new flashcards to their deck.
+            To activate it, click the "Add" menu option in the "Edit" menu.
+            </txt>
+            <img src="add.png"/>
+        </pair>
+        <pair>
+            <txt>
+            The following screen will be shown:
+            </txt>
+            <img src="add-screen.png" scale="0.6"/>
+        </pair>
+        <pair>
+            <txt>
+            To create a new flashcard, enter the front into the "Front" field,
+            and the back into the "Back" field.
+            </txt>
+            <img src="add-filled.png" scale="0.6"/>
+        </pair>
+        <pair>
+            <txt>
+            Finally, click the "Add Flashcard" button to add the flashcard into the deck.
+            </txt>
+            <img src="add-flashcard-button.png"/>
+        </pair>
+    </page>
+    <page name="Study">
+        <txt>
+        Study is the primary function of Arion.
+        It is how users use their flashcards to learn information.
+        </txt>
+        <pair>
+            <txt>
+            To activate Study, click the "Study" menu option in the "View" menu.
+            </txt>
+            <img src="study.png"/>
+        </pair>
+        <pair>
+            <txt>
+            Arion will display the front of the first of the due flashcards.
+            Now, attempt to recall the information on the back of the flashcard.
+            Click "Flip" or press the space bar to show the back of the card.
+            </txt>
+            <img src="display-screen-flip.png" scale="0.5"/>
+            <!--<img src="display-screen-flip.png" scale="0.35"/>-->
+        </pair>
+        <pair>
+            <txt>
+            The back of the flashcard will be displayed.
+            If the recall was correct, click the "Correct" button.
+            If it was incorrect, click "Incorrect".
+            Correctly recalling the flashcard will multiply the review interval by 1.6,
+            and remove it from the queue of due flashcards.
+            Clicking "Incorrect" will set the interval back to one day,
+            and keep the flashcard in the due queue until the card is correctly reviewed.
+            </txt>
+            <img src="flashcard-back.png" scale="0.5"/>
+        </pair>
+        <pair>
+            <txt>
+            The next flashcard will be shown, and the process will repeat until all flashcards have been studied.
+            Finally, a congratulatory screen will be shown, and a button will appear to return to the main screen.
+            </txt>
+            <img src="congrats.png"/>
+        </pair>
+    </page>
+    <page name="Sort">
+        <pair>
+            <txt>
+            Sort allows for sorting of flashcards.
+            To start Sort, click the "Sort" menu option in the "View" menu.
+            </txt>
+            <img src="sort.png"/>
+        </pair>
+        <pair>
+            <txt>
+            The following screen will be displayed:
+            </txt>
+            <img src="sort-screen.png" scale="0.3"/>
+        </pair>
+        <pair>
+            <txt>
+            To sort the flashcards, select one of the fields in the first drop-down:
+            </txt>
+            <img src="select-field.png"/>
+        </pair>
+        <pair>
+            <txt>
+            Then, select either "Forward" or "Backward" in the second drop-down:
+            </txt>
+            <img src="select-direction.png"/>
+        </pair>
+        <pair>
+            <txt>
+            Lastly, click the "Sort" button to confirm the selection and sort the flashcards.
+            </txt>
+            <img src="sort-button.png"/>
+        </pair>
+        <txt>
+        The browse feature can be used to view the newly sorted cards.
+        The order of cards also affects the order in which they are presented in the Study feature.
+        </txt>
+    </page>
+    <page name="About">
+        <txt>
+        The About feature summarizes Arion's functionality.
+        It outlines Arion's purpose, design philosophy, and development.
+        </txt>
+        <pair>
+            <txt>
+            To use the About feature, first click the "About" menu option in the "Help" menu: 
+            </txt>   
+            <img src="about.png"/>
+        </pair>
+        <pair>
+            <txt>
+            The following window will be displayed:
+            </txt>
+            <img src="about-window.png"/>
+        </pair>
+        <pair>
+            <txt>
+            To close the pop-up, click the "Close" button at the bottom of the window:
+            </txt>
+            <img src="about-close.png"/>
+        </pair>
+    </page>
+    <page name="Quit">
+        <pair>
+            <txt>
+            Quit exits Arion.
+            To leave arion, click the "Quit" menu, then click the "Confirm?" menu option.
+            </txt>
+            <img src="quit.png"/>
+        </pair>
+</guide>

@@ -1,4 +1,5 @@
 package callback;
+
 import arion.Flashcard;
 
 public interface SortCallback {

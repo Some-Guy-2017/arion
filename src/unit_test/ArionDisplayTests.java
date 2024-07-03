@@ -2,99 +2,104 @@ package unit_test;
 
 import arion.*;
 import callback.*;
+import exception.GuideDisplayException;
 
 import java.util.*; // Random, ArrayList, Arrays
 import java.io.*;
 
 public class ArionDisplayTests {
-    static Test[] tests;
-    
-    static final int randomWordCount = 2;
-    static Random rand = new Random();
-    static ArrayList<String> nounList = new ArrayList<>();
-    static String nounFilepath = "./top-1000-nouns.txt";
-
     static int DEFAULT_WIDTH = 800;
     static int DEFAULT_HEIGHT = 600;
 
-    public static void evaluate() {
-        parseNouns();
+    static Test[] tests;
+    static {
+        ArrayList<Flashcard> testFlashcards = generateTestFlashcards();
+
         Runnable mainScreenAddCallback = () -> System.out.println("AddCallback Run!");
         Runnable mainScreenStudyCallback = () -> System.out.println("StudyCallback Run!");
-        AddCallback addCallback = (String[] fields) -> System.out.println("AddCallback ~ Fields: " + Arrays.toString(fields));
-        EditCallback editCallback = (int index, String[] fields) ->
+        AddCallback addCallback = (String[] fields) -> System.out
+                .println("AddCallback ~ Fields: " + Arrays.toString(fields));
+        EditCallback editCallback = (int index, String[] fields) -> {
             System.out.println("Edit Callback ~ Index: " + index + ", Fields: " + Arrays.toString(fields));
-        DeleteCallback deleteCallback = (int[] indices) ->
-            System.out.println("Delete Callback ~ Indices: " + Arrays.toString(indices));
-        ArrayList<Flashcard> testFlashcards = generateTestFlashcards();
-        
-        tests = new Test[] {
-            new ConstructorTest("100x100 Resolution", 100, 100),
-            new ConstructorTest("-100x-100 Resolution", -100, -100),
-            new ConstructorTest("0x0 Resolution", 0, 0),
-            new ConstructorTest("", 100, 100),
-            new ConstructorTest(null, 100, 100),
-            new MenuBarTest("Regular Case", 3, 2),
-            new MenuBarTest("Empty Menus", 0, 0),
-            new MenuBarTest("Incorrectly Sized Menus", 1, 2, 3, 2, 3).withException("IllegalArgumentException"),
-            new MenuBarTest("Null Parameters", null, null, null).withException("NullPointerException"),
-            new MainScreenTest("Regular Case", mainScreenAddCallback, mainScreenStudyCallback),
-            new MainScreenTest("Empty Callbacks", () -> {}, () -> {}),
-            new MainScreenTest("Null Callbacks", null, null).withException("NullPointerException"),
-            new BrowseScreenTest("Regular Case", testFlashcards, editCallback, deleteCallback),
-            new BrowseScreenTest("Empty Flashcards", new ArrayList<>(), editCallback, deleteCallback),
-            new BrowseScreenTest("Empty Callbacks", testFlashcards, (int index, String[] fields) -> {}, (int[] indices) -> {}),
-            new BrowseScreenTest("Null Parameters", null, null, null).withException("NullPointerException"),
-            new AddScreenTest("Regular Case", addCallback),
-            new AddScreenTest("Empty Callback", (String[] fields) -> {}),
-            new AddScreenTest("Null Callback", null),
-            new DisplayMessageTest("Regular Case", "Message", "Title"),
-            new DisplayMessageTest("Empty Message and Title", "", ""),
-            new DisplayMessageTest("Null Parameters", null, null).withException("NullPointerException"),
-            new DisplayWarningTest("Regular Case", "Message"),
-            new DisplayWarningTest("Empty Message", ""),
-            new DisplayWarningTest("Null Message", null).withException("NullPointerException"),
         };
-        for (Test test : tests) test.evaluate();
-    }
+        DeleteCallback deleteCallback = (int[] indices) -> {
+            System.out.println("Delete Callback ~ Indices: " + Arrays.toString(indices));
+        };
+        Flashcard testFlashcard = new Flashcard("front", "back");
+        ReviewCallback reviewCallback = (boolean success) -> System.out
+                .println("Running review callback with success=" + success + ".");
+        SortCallback sortCallback = (Flashcard.Field field, boolean reversed) -> {
+            System.out.println("Running sort callback with field=" + field + ", reversed=" + reversed + ".");
+        };
 
-    static String generateRandomString() {
-        StringBuilder builder = new StringBuilder();
-
-        int lastIdx = -1;
-        for (int i = 0; i < randomWordCount; i++) {
-            int randomIdx;
-            do {
-                randomIdx = rand.nextInt(nounList.size());
-            } while (randomIdx == lastIdx);
-
-            String noun = nounList.get(randomIdx);
-            noun = noun.substring(0, 1).toUpperCase() + noun.substring(1).toLowerCase();
-            builder.append(noun);
-            lastIdx = randomIdx;
-        }
-
-        return builder.toString();
+        tests = new Test[] {
+                new DisplayConstructorTest("100x100 Resolution", 100, 100),
+                new DisplayConstructorTest("-100x-100 Resolution", -100, -100),
+                new DisplayConstructorTest("0x0 Resolution", 0, 0),
+                new DisplayConstructorTest("", 100, 100),
+                new DisplayConstructorTest(null, 100, 100),
+                new DisplayConstructorTest("", 1, 1),
+                new MenuBarTest("Regular Case", 3, 2),
+                new MenuBarTest("Empty Menus", 0, 0),
+                new MenuBarTest("Incorrectly Sized Menus", 1, 2, 3, 2, 3)
+                        .withException("java.lang.IllegalArgumentException"),
+                new MenuBarTest("Null Parameters", null, null, null).withException("java.lang.NullPointerException"),
+                new MainScreenTest("Regular Case", mainScreenAddCallback, mainScreenStudyCallback),
+                new MainScreenTest("Empty Callbacks", () -> {
+                }, () -> {
+                }),
+                new MainScreenTest("Null Callbacks", null, null).withException("java.lang.NullPointerException"),
+                new BrowseScreenTest("Regular Case", testFlashcards, editCallback, deleteCallback),
+                new BrowseScreenTest("Empty Flashcards", new ArrayList<>(), editCallback, deleteCallback),
+                new BrowseScreenTest("Empty Callbacks", testFlashcards, (int index, String[] fields) -> {
+                }, (int[] indices) -> {
+                }),
+                new BrowseScreenTest("Null Parameters", null, null, null)
+                        .withException("java.lang.NullPointerException"),
+                new AddScreenTest("Regular Case", addCallback),
+                new AddScreenTest("Empty Callback", (String[] fields) -> {
+                }),
+                new AddScreenTest("Null Callback", null).withException("java.lang.NullPointerException"),
+                new StudyScreenTest("Regular Front Case", testFlashcard, true, reviewCallback),
+                new StudyScreenTest("Regular Back Case", testFlashcard, false, reviewCallback),
+                new StudyScreenTest("Null Flashcard", null, true, reviewCallback)
+                        .withException("java.lang.NullPointerException"),
+                new StudyScreenTest("Null Callback", testFlashcard, true, null)
+                        .withException("java.lang.NullPointerException"),
+                new StudyScreenTest("Null Parameters", null, true, null)
+                        .withException("java.lang.NullPointerException"),
+                new SortScreenTest("Regular Case", sortCallback),
+                new SortScreenTest("Null Callback", null).withException("java.lang.NullPointerException"),
+                new GuidePageTest("Regular Case", 0),
+                new GuidePageTest("Small index", -1).withException("exception.GuideDisplayException"),
+                new GuidePageTest("Large index", 100).withException("exception.GuideDisplayException"),
+                new GuidePageTest("Missing Guide File", 0, "./test-files/guides/missing.xml")
+                        .withException("exception.GuideDisplayException"),
+                new GuidePageTest("Invalid Guide File", 0, "./test-files/guides/invalid.xml")
+                        .withException("exception.GuideDisplayException"),
+                new AboutScreenTest("Regular Case"),
+                new AlertTest("Regular Case", "Alert!"),
+                new AlertTest("Empty Message", ""),
+                new AlertTest("Null Message", null).withException("java.lang.NullPointerException"),
+                new ConfirmationWindowTest("Regular Case", "Message", "Title"),
+                new ConfirmationWindowTest("Empty Message and Title", "", ""),
+                new ConfirmationWindowTest("Null Message", null, "Title")
+                        .withException("java.lang.NullPointerException"),
+                new ConfirmationWindowTest("Null Title", "Message", null)
+                        .withException("java.lang.NullPointerException"),
+                new ConfirmationWindowTest("Null Parameters", null, null)
+                        .withException("java.lang.NullPointerException"),
+                new QuitTest("Regular Case"),
+                new SuccessScreenTest("Regular Case"),
+        };
     }
 
     public static ArionDisplay generateDefaultDisplay(String title) {
         return new ArionDisplay(title, DEFAULT_WIDTH, DEFAULT_HEIGHT);
     }
 
-    private static void parseNouns() {
-        BufferedReader reader;
-        try {
-            reader = new BufferedReader(new FileReader(nounFilepath));
-            nounList = new ArrayList<>(reader.lines().toList());
-        } catch (FileNotFoundException e) {
-            System.out.println("Could not find " + nounFilepath);
-            e.printStackTrace();
-            return;
-        }
-    }
-
     private static ArrayList<Flashcard> generateTestFlashcards() {
-        return new ArrayList<Flashcard>(Arrays.asList(new Flashcard[] {
+        return ArionUtils.toArrayList(new Flashcard[] {
                 new Flashcard("What is the capital of France?", "Paris"),
                 new Flashcard("Who wrote \"To Kill a Mockingbird\"?", "Harper Lee"),
                 new Flashcard("What is the chemical symbol for gold?", "Au"),
@@ -120,63 +125,74 @@ public class ArionDisplayTests {
                 new Flashcard("Who was the first woman to win a Nobel Prize?", "Marie Curie"),
                 new Flashcard("What is the largest desert in the world?", "Antarctica"),
                 new Flashcard("What is the chemical formula for glucose?", "C6H12O6"),
-        }));
+        });
     }
 
     public static void main(String[] args) {
-        evaluate();
+        Test.evaluateTests(tests);
     }
 }
 
-class ConstructorTest extends Test {
+class DisplayConstructorTest extends Test {
     int width;
     int height;
 
-    public ConstructorTest(String name, int width, int height) {
-        this.name = name;
+    public DisplayConstructorTest(String testName, int width, int height) {
+        super("Display Constructor Test", testName);
         this.width = width;
         this.height = height;
     }
 
     void execute() {
-        new ArionDisplay(name, width, height);
+        new ArionDisplay(qualifiedName, width, height);
     }
 }
 
 class MenuBarTest extends Test {
+    static String testType = "Display Menu Bar Test";
+
     String[] menuTitles;
     String[][] actions;
     Runnable[][] callbacks;
 
-    public MenuBarTest(String name, int menuCount, int actionCount) {
-        this.name = name;
+    public MenuBarTest(String testName, int menuCount, int actionCount) {
+        super(testType, testName);
+
         this.menuTitles = generateTestMenus(menuCount);
         this.actions = generateTestActions(menuCount, actionCount);
         this.callbacks = generateTestCallbacks(menuCount, actionCount, this.actions);
     }
-    
-    public MenuBarTest(String name, int menuCount, int actionWidth, int actionHeight, int callbackWidth, int callbackHeight) {
-        this.name = name;
+
+    public MenuBarTest(String testName, int menuCount, int actionWidth, int actionHeight, int callbackWidth,
+            int callbackHeight) {
+        super(testType, testName);
+
         this.menuTitles = generateTestMenus(menuCount);
         this.actions = generateTestActions(actionWidth, actionHeight);
         this.callbacks = generateTestCallbacks(callbackWidth, callbackHeight, this.actions);
     }
 
-    public MenuBarTest(String name, String[] menuTitles, String[][] actions, Runnable[][] callbacks) {
-        this.name = name;
+    public MenuBarTest(String testName, String[] menuTitles, String[][] actions, Runnable[][] callbacks) {
+        super(testType, testName);
+
         this.menuTitles = menuTitles;
         this.actions = actions;
         this.callbacks = callbacks;
     }
 
     void execute() {
-        ArionDisplayTests.generateDefaultDisplay(name).displayMenuBar(menuTitles, actions, callbacks);
+        ArionDisplayTests.generateDefaultDisplay(qualifiedName).displayMenuBar(menuTitles, actions, callbacks);
     }
 
     public static String[] generateTestMenus(int menuCount) {
         String[] menus = new String[menuCount];
-        for (int i = 0; i < menuCount; i++)
-            menus[i] = ArionDisplayTests.generateRandomString();
+        for (int i = 0; i < menuCount; i++) {
+            Optional<String> randomStr = ArionUtils.generateRandomString();
+            if (randomStr.isEmpty())
+                menus[i] = "Menu " + i;
+            else
+                menus[i] = randomStr.get();
+        }
         return menus;
     }
 
@@ -184,7 +200,11 @@ class MenuBarTest extends Test {
         String[][] actions = new String[menuCount][actionCount];
         for (int menuIdx = 0; menuIdx < menuCount; menuIdx++)
             for (int actionIdx = 0; actionIdx < actionCount; actionIdx++) {
-                actions[menuIdx][actionIdx] = ArionDisplayTests.generateRandomString();
+                Optional<String> randomStr = ArionUtils.generateRandomString();
+                if (randomStr.isEmpty())
+                    actions[menuIdx][actionIdx] = "Action " + menuIdx + "," + actionIdx;
+                else
+                    actions[menuIdx][actionIdx] = randomStr.get();
             }
 
         return actions;
@@ -215,14 +235,14 @@ class MainScreenTest extends Test {
     Runnable addCallback;
     Runnable studyCallback;
 
-    public MainScreenTest(String name, Runnable addCallback, Runnable studyCallback) {
-        this.name = name;
+    public MainScreenTest(String testName, Runnable addCallback, Runnable studyCallback) {
+        super("Display Main Screen Test", testName);
         this.addCallback = addCallback;
         this.studyCallback = studyCallback;
     }
 
     void execute() {
-        ArionDisplayTests.generateDefaultDisplay(name).displayMainScreen(addCallback, studyCallback);
+        ArionDisplayTests.generateDefaultDisplay(qualifiedName).displayMainScreen(addCallback, studyCallback);
     }
 }
 
@@ -231,55 +251,154 @@ class BrowseScreenTest extends Test {
     EditCallback editCallback;
     DeleteCallback deleteCallback;
 
-    public BrowseScreenTest(String name, ArrayList<Flashcard> flashcards, EditCallback editCallback, DeleteCallback deleteCallback) {
-        this.name = name;
+    public BrowseScreenTest(String testName, ArrayList<Flashcard> flashcards, EditCallback editCallback,
+            DeleteCallback deleteCallback) {
+        super("Display Browse Screen Test", testName);
         this.flashcards = flashcards;
         this.editCallback = editCallback;
         this.deleteCallback = deleteCallback;
     }
 
     void execute() {
-        ArionDisplayTests.generateDefaultDisplay(name).displayBrowseScreen(flashcards, editCallback, deleteCallback);
+        ArionDisplayTests.generateDefaultDisplay(qualifiedName).displayBrowseScreen(flashcards, editCallback,
+                deleteCallback);
     }
 }
 
 class AddScreenTest extends Test {
     AddCallback addCallback;
 
-    public AddScreenTest(String name, AddCallback addCallback) {
-        this.name = name;
+    public AddScreenTest(String testName, AddCallback addCallback) {
+        super("Display Add Screen Test", testName);
         this.addCallback = addCallback;
     }
-    
+
     void execute() {
-        ArionDisplayTests.generateDefaultDisplay(name).displayAddScreen(addCallback);
+        ArionDisplayTests.generateDefaultDisplay(qualifiedName).displayAddScreen(addCallback);
     }
 }
-    
-class DisplayMessageTest extends Test {
+
+class StudyScreenTest extends Test {
+    Flashcard flashcard;
+    boolean front;
+    ReviewCallback reviewCallback;
+
+    public StudyScreenTest(String testName, Flashcard flashcard, boolean front, ReviewCallback reviewCallback) {
+        super("Display Study Screen Test", testName);
+        this.flashcard = flashcard;
+        this.front = front;
+        this.reviewCallback = reviewCallback;
+    }
+
+    void execute() {
+        ArionDisplay display = ArionDisplayTests.generateDefaultDisplay(qualifiedName);
+        display.displayStudyScreen(flashcard, front, reviewCallback);
+    }
+}
+
+class SortScreenTest extends Test {
+    SortCallback callback;
+
+    public SortScreenTest(String testName, SortCallback callback) {
+        super("Display Sort Screen Test", testName);
+        this.callback = callback;
+    }
+
+    void execute() {
+        ArionDisplayTests.generateDefaultDisplay(qualifiedName).displaySortScreen(callback);
+    }
+}
+
+class GuidePageTest extends Test {
+    int pageNum;
+    Optional<String> guideFileOption;
+
+    public GuidePageTest(String testName, int pageNum) {
+        this(testName, pageNum, Optional.empty());
+    }
+
+    public GuidePageTest(String testName, int pageNum, String guideFile) {
+        this(testName, pageNum, Optional.of(guideFile));
+    }
+
+    private GuidePageTest(String testName, int pageNum, Optional<String> guideFileOption) {
+        super("Display Guide Page Test", testName);
+        this.pageNum = pageNum;
+        this.guideFileOption = guideFileOption;
+    }
+
+    void execute() throws GuideDisplayException {
+        ArionDisplay display = ArionDisplayTests.generateDefaultDisplay(qualifiedName);
+
+        ArionDisplay._TestHooks testHooks = display._testHooks;
+        if (guideFileOption.isPresent()) {
+            testHooks.setGuideFilepath(guideFileOption.get());
+        } else {
+            testHooks.setGuideFilepath(display._testHooks.getGuideFilepath());
+        }
+
+        testHooks.displayGuidePageWithExceptions(pageNum);
+    }
+}
+
+class AboutScreenTest extends Test {
+    public AboutScreenTest(String testName) {
+        super("Display About Screen Test", testName);
+    }
+
+    void execute() {
+        ArionDisplayTests.generateDefaultDisplay(qualifiedName).displayAboutScreen();
+    }
+}
+
+class AlertTest extends Test {
+    String message;
+
+    public AlertTest(String testName, String message) {
+        super("Display Alert Test", testName);
+        this.message = message;
+    }
+
+    void execute() {
+        ArionDisplay.alert(message);
+    }
+}
+
+class ConfirmationWindowTest extends Test {
     String message;
     String title;
 
-    public DisplayMessageTest(String name, String message, String title) {
-        this.name = name;
+    public ConfirmationWindowTest(String testName, String message, String title) {
+        super("Display Confirmation Window Test", testName);
         this.message = message;
         this.title = title;
     }
 
     void execute() {
-        ArionDisplayTests.generateDefaultDisplay(name).displayMessage(message, title);
+        ArionDisplay display = ArionDisplayTests.generateDefaultDisplay(qualifiedName);
+        boolean response = display.displayConfirmationWindow(message, title);
+        System.out.println("Received response of " + response + ".");
     }
 }
 
-class DisplayWarningTest extends Test {
-    String message;
+class QuitTest extends Test {
 
-    public DisplayWarningTest(String name, String message) {
-        this.name = name;
-        this.message = message;
+    public QuitTest(String testName) {
+        super("Display Quit Test", testName);
     }
 
     void execute() {
-        ArionDisplayTests.generateDefaultDisplay(name).displayWarningMessage(message);
+        ArionDisplayTests.generateDefaultDisplay(qualifiedName).quit();
+    }
+}
+
+class SuccessScreenTest extends Test {
+
+    public SuccessScreenTest(String testName) {
+        super("Display Success Screen Test", testName);
+    }
+
+    void execute() {
+        ArionDisplayTests.generateDefaultDisplay(qualifiedName).displaySuccessScreen();
     }
 }

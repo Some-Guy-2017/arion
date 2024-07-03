@@ -1,12 +1,5 @@
 # TODO
-## Features
-[ ] Guide
-[ ] About
-
-## Next
-[ ] Remove headless mode
-[ ] Add back buttons
-[ ] Refactor
+# Formatting the code
 [ ] Add inline comments
     [ ] Methods
         [ ] All methods have a block comment summarizing: Purpose, Input and Output
@@ -18,10 +11,16 @@
         [ ] Some complex methods have explanatory comments inside
         [ ] No syntax warnings present
         [ ] Java Coding Conventions (indentation, variable names, comments, etc.) adhered to closely
+[ ] Remove headless mode
+[ ] Remove test hooks
 [ ] Reread
     [ ] Check that pseudocode lines up with actual code
+[ ] Change the Guide's about image to an actual image of the About window (not Lena 😭)
+[ ] Remove lena.png from images
 
 ## Done
+[✓] Format code
+[✓] Add tests for all public methods
 [✓] Figure out how to implement the features required by the rubric:
     [✓] Sequential Search: When studying finding cards due today
     [✓] Binary Search: When adding, maintain the sorted order
@@ -96,6 +95,24 @@
 [✓] Sort
     [✓] Make combo box sizes the same
 [✓] Quit
+[✓] Guide
+    [✓] Make the text area not have to scroll horizontally
+    [-] Use a real pop-up window, rather than this thing that cannot be dragged around (maybe another frame?).
+    [✓] Add images into guide rendering
+    [✓] Make generation of Guide panel generic (i.e. No predefined width / height)
+    [✓] Make the buttons not clip into the bottom
+    [✓] Fix all the image sizes
+    [✓] Make pair consider image width when deciding sizes
+    [✓] Make text parsing not consider white space
+    [✓] Set JTextArea height to its actual size
+    [✓] Write the guide
+[✓] Press space to flip the flashcard
+[✓] About
+    [✓] What is SRS?
+    [✓] Who uses it?
+    [✓] How was Arion developed?
+[✓] Ensure that window and pop up is not hard coded (pop up size should be relative to window size)
+[✓] Add back buttons
 
 # Testing
 
