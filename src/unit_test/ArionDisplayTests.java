@@ -11,8 +11,13 @@ public class ArionDisplayTests {
     static int DEFAULT_WIDTH = 800;
     static int DEFAULT_HEIGHT = 600;
 
-    static Test[] tests;
-    static {
+    static Test[] tests = generateTests();
+
+    public static ArionDisplay generateDefaultDisplay(String title) {
+        return new ArionDisplay(title, DEFAULT_WIDTH, DEFAULT_HEIGHT);
+    }
+    
+    private static Test[] generateTests() {
         ArrayList<Flashcard> testFlashcards = generateTestFlashcards();
 
         Runnable mainScreenAddCallback = () -> System.out.println("AddCallback Run!");
@@ -32,7 +37,7 @@ public class ArionDisplayTests {
             System.out.println("Running sort callback with field=" + field + ", reversed=" + reversed + ".");
         };
 
-        tests = new Test[] {
+        Test[] tests = new Test[] {
                 new DisplayConstructorTest("100x100 Resolution", 100, 100),
                 new DisplayConstructorTest("-100x-100 Resolution", -100, -100),
                 new DisplayConstructorTest("0x0 Resolution", 0, 0),
@@ -92,10 +97,7 @@ public class ArionDisplayTests {
                 new QuitTest("Regular Case"),
                 new SuccessScreenTest("Regular Case"),
         };
-    }
-
-    public static ArionDisplay generateDefaultDisplay(String title) {
-        return new ArionDisplay(title, DEFAULT_WIDTH, DEFAULT_HEIGHT);
+        return tests;
     }
 
     private static ArrayList<Flashcard> generateTestFlashcards() {
@@ -337,7 +339,7 @@ class GuidePageTest extends Test {
             testHooks.setGuideFilepath(display._testHooks.getGuideFilepath());
         }
 
-        testHooks.displayGuidePageWithExceptions(pageNum);
+        testHooks.displayGuidePageRoutine(pageNum);
     }
 }
 

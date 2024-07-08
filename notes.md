@@ -1,22 +1,18 @@
 # TODO
 # Formatting the code
 [ ] Add inline comments
+    [✓] Comments above each file
+    [✓] Write comments for SAXErrorHandler and MutablePopup 
     [ ] Methods
-        [ ] All methods have a block comment summarizing: Purpose, Input and Output
+        [✓] All methods have a block comment summarizing: Purpose, Input and Output
         [ ] Some complex methods have explanatory comments inside
-        [ ] No syntax warnings present
-        [ ] Java Coding Conventions (indentation, variable names, comments, etc.) adhered to closely
-    [ ] Classes
-        [ ] All methods have a block comment summarizing: Purpose, Input and Output
-        [ ] Some complex methods have explanatory comments inside
-        [ ] No syntax warnings present
-        [ ] Java Coding Conventions (indentation, variable names, comments, etc.) adhered to closely
 [ ] Remove headless mode
 [ ] Remove test hooks
-[ ] Reread
-    [ ] Check that pseudocode lines up with actual code
+[ ] Remove mock flashcards
 [ ] Change the Guide's about image to an actual image of the About window (not Lena 😭)
 [ ] Remove lena.png from images
+[ ] Reread
+    [ ] Check that pseudocode lines up with actual code
 
 ## Done
 [✓] Format code

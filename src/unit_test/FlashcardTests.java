@@ -323,7 +323,7 @@ class UpdateReviewDateTest extends Test {
 
     void execute() {
         Flashcard flashcard = new Flashcard("Front", "Back", LocalDate.now(), initialInterval);
-        flashcard.updateReviewDate(success);
+        flashcard.updateReview(success);
 
         assert expectedDate.equals(flashcard.reviewDate)
                 : "Expected " + expectedDate + " but received " + flashcard.reviewDate + ".";
