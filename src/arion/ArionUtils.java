@@ -1,7 +1,10 @@
 package arion;
 
 import java.util.*;
+import java.util.concurrent.SynchronousQueue;
+import java.util.regex.*;
 import java.io.*;
+import java.lang.reflect.Array;
 
 /*
  * ArionUtils provides many helpful methods for running Arion,
@@ -13,7 +16,8 @@ public class ArionUtils {
     static final int RANDOM_WORD_COUNT = 2;
     static final String NOUN_FILEPATH = "./top-1000-nouns.txt";
     static Random rand = new Random();
-    static Optional<ArrayList<String>> nounListOption = parseNouns();
+    //static Optional<ArrayList<String>> nounListOption = parseNouns(NOUN_FILEPATH);
+    static Optional<ArrayList<String>> nounListOption = Optional.empty();
 
     /*
      * generateRandomString generates a random string by concatenating "RANDOM_WORD_COUNT" nouns
@@ -23,23 +27,30 @@ public class ArionUtils {
      * Output: if the noun list exists, then a random string; otherwise, nothing.
      */
     public static Optional<String> generateRandomString() {
-        if (nounListOption.isEmpty())
+        if (nounListOption == null) {
+            throw new NullPointerException("Cannot generate random String with null noun list.");
+        }
+        if (nounListOption.isEmpty()) {
             return Optional.empty();
+        }
+        if (nounListOption.get().size() < 1) {
+            return Optional.empty();
+        }
         ArrayList<String> nounList = nounListOption.get();
 
         StringBuilder builder = new StringBuilder();
 
         int lastIdx = -1;
         for (int i = 0; i < RANDOM_WORD_COUNT; i++) {
-            int randomIdx;
+            int idx;
             do {
-                randomIdx = rand.nextInt(nounList.size());
-            } while (randomIdx == lastIdx);
-
-            String noun = nounList.get(randomIdx);
-            noun = noun.substring(0, 1).toUpperCase() + noun.substring(1).toLowerCase();
+                idx = rand.nextInt(nounList.size());
+            } while (idx == lastIdx); // generate a random index different from
+                                      // the last one
+            String noun = nounList.get(idx);
+            noun = noun.substring(0, 1).toUpperCase() + noun.substring(1).toLowerCase(); // format noun
             builder.append(noun);
-            lastIdx = randomIdx;
+            lastIdx = idx;
         }
 
         return Optional.of(builder.toString());
@@ -97,6 +108,10 @@ public class ArionUtils {
      * Output: reversed array.
      */
     public static <T> T[] reversedArray(T[] array) {
+        if (array == null) {
+            return null;
+        }
+        
         T[] output = (T[]) cloneArray(array);
 
         int len = array.length;
@@ -107,23 +122,42 @@ public class ArionUtils {
 
         return output;
     }
-
+    
     /*
-     * parseNouns parses the noun from "NOUN_FILEPATH".
-     * If some exception occurs (e.g. the file does not exist), it returns an empty Optional.
+     * parseNouns parses the nouns in "NOUN_FILEPATH".
+     * If an exception occurs, it returns an empty Optional.
      *
      * Input: no input.
      * Output: list of nouns read from the file, or empty if the file cannot be read.
      */
-    private static Optional<ArrayList<String>> parseNouns() {
+    private static Optional<ArrayList<String>> parseNouns(String filepath) {
+        if (filepath == null) {
+            throw new NullPointerException("Cannot parse nouns with null filepath.");
+        }
+        
         try {
-            BufferedReader reader = new BufferedReader(new FileReader(NOUN_FILEPATH));
-            return Optional.of(new ArrayList<>(reader.lines().toList()));
-        } catch (FileNotFoundException e) {
-            System.out.println("Could not find " + NOUN_FILEPATH);
-            e.printStackTrace();
+            BufferedReader reader = new BufferedReader(new FileReader(filepath));
+            ArrayList<String> nouns = new ArrayList<>();
+
+            String line;
+            Pattern nonWordPattern = Pattern.compile("\\W", Pattern.UNICODE_CHARACTER_CLASS);
+            while ((line = reader.readLine()) != null) {
+
+                // validate that the line contains only word characters
+                boolean hasNonWord = nonWordPattern.matcher(line).find();
+                boolean isEmpty = line.isEmpty();
+                if (hasNonWord || isEmpty) {
+                    return Optional.empty();
+                }
+                nouns.add(line);
+            }
+            if (nouns.size() == 0) {
+                return Optional.empty();
+            }
+            return Optional.of(nouns);
+            
+        } catch (IOException e) {
             return Optional.empty();
         }
     }
-
 }

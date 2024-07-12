@@ -5,7 +5,6 @@ CLASS Arion
         CALL Database with "./flashcards.txt"
         SET database to return value
         SET display to ArionDisplay
-        SET studyIndex to 0
 
         SET menuTitles to "File", "Edit", "View", "Help", and "Quit"
         SET actions to "Load", "Save", "Browse", "Add", "Study", "Sort", "Guide", "About", and "Confirm?"
@@ -13,6 +12,7 @@ CLASS Arion
         SET deleteCallback to CALL deleteFlashcard
         SET addCallback to CALL addFlashcard
         SET sortCallback to CALL sortFlashcards
+        SET reviewCallback to CALL updateReviewedFlashcard
         SET callbacks to:
             - CALL loadFlashcards
             - CALL saveFlashcards
@@ -51,33 +51,28 @@ CLASS Arion
         ENDIF
     END
 
-    START deleteFlashcard(index)
-        CALL display.displayConfirmationWindow with "Delete Flashcard?" and "Deletion Confirmation"
-        SET confirmation to return value
-        IF confirmation THEN
-            REMOVE flashcard at index
-        ENDIF
+    START deleteFlashcards(indices)
+        LOOP through indices backwards
+            DELETE flashcard at index 
+        ENDLOOP
     END
 
     START editFlashcard(fields, index)
         CALL Flashcard.fromStringArray with fields
-        SET flashcard to return value
-        SET flashcards at index to flashcard
+        SET flashcards at index to return value
     END
 
     START addFlashcard(fields)
         CALL Flashcard.fromStringArray with fields
-        SET flashcard to return value
-        APPEND flashcard to flashcards
+        APPEND return value to flashcards
     END
 
     START studyFlashcards()
-        SET dueFlashcards to empty flashcard list
+        SET dueFlashcards to empty queue
         FOR each flashcard in flashcards
             CALL flashcard.isDue
-            SET isDue to return value
-            IF isDue THEN
-                APPEND flashcard to dueFlashcards
+            IF return value THEN
+                PUSH flashcard to dueFlashcards
             ENDIF
         ENDFOR
 
@@ -86,20 +81,17 @@ CLASS Arion
             RETURN
         ENDIF
 
-        SET studyIndex to 0
         CALL display.displayStudyScreen with flashcard, true, and reviewCallback
     END
 
-    START reviewCallback.run(success)
-        SET flashcard to dueFlashcards at index studyIndex
+    START updateReviewedFlashcard(success)
+        POP flashcard from dueFlashcards
         CALL flashcard.updateReviewDate with success
-        INCREMENT studyIndex
-
-        IF studyIndex >= length of dueFlashcards THEN
+        IF dueFlashcards is empty THEN
             RETURN
         ENDIF
         
-        CALL display.displayStudyScreen with flashcard, true, and reviewCallback
+        CALL display.displayStudyScreen with top of dueFlashcards queue, true, and reviewCallback
     END
 
     START sortFlashcards(flashcardField, reversed)
@@ -107,17 +99,15 @@ CLASS Arion
         SET flashcards to return value
     END
 
-    START mergeSort(flashcardField, reversed, flashcards, start, end)
-        SET length to end - start 
+    START mergeSort(flashcardField, reversed, flashcards, start, length)
+        INITIALIZE sorted
         IF length equals 1 THEN
-            INITIALIZE sorted
             APPEND flashcards at index start to sorted
             RETURN sorted
         ELSE IF length equals 2 THEN
-            INITIALIZE sorted
-            CALL compare with flashcardField, reversed, flashcards at index start, and flashcards at index start + 1
-            SET ordered to return value
-            IF ordered THEN
+            CALL compareTo with flashcardField, reversed, flashcards at index start, and flashcards at index start + 1
+            SET comparison to return value
+            IF comparison THEN
                 SET sorted to flashcards at index 0, flashcards at index 1
             ELSE
                 SET sorted to flashcards at index 1, flashcards at index 0
@@ -125,13 +115,12 @@ CLASS Arion
             RETURN sorted
         ENDIF
 
-        SET mid to (start + end) / 2
-        CALL mergeSort with flashcardField, reversed, flashcards, start, and mid
+        SET mid to length / 2 + start
+        CALL mergeSort with flashcardField, reversed, flashcards, start, length / 2
         SET left to return value
-        CALL mergeSort with flashcardField, reversed, flashcards, mid, and end
+        CALL mergeSort with flashcardField, reversed, flashcards, mid, and length - length / 2
         SET right to return value
 
-        INITIALIZE sorted
         WHILE there are items in right or left
             INITIALIZE chooseLeft
             IF left is empty THEN
@@ -139,7 +128,7 @@ CLASS Arion
             ELSE IF right is empty:
                 SET chooseLeft to true
             ELSE
-                CALL compare with flashcardField, reversed, first item in left, and first item in right
+                CALL compareTo with flashcardField, reversed, first item in left, and first item in right
                 SET chooseLeft to return value
             ENDIF
 
@@ -153,31 +142,6 @@ CLASS Arion
         RETURN sorted
     END
     
-    START compare(flashcardField, reversed, item1, item2)
-        IF flashcardField is Front THEN
-            SET comparisonItem1 to item1.front
-            SET comparisonItem2 to item2.front
-        ELSE IF flashcardField is Back THEN
-            SET comparisonItem1 to item1.back
-            SET comparisonItem2 to item2.back
-        ENDIF
-
-        INITIALIZE comparison
-        IF flashcardField is Front OR Back THEN
-            COMPARE comparisonItem1 to comparisonItem2 lexographically
-            SET comparison to result
-        ELSE IF flashcardField is ReviewDate THEN
-            SET comparison to item1.reviewDate in seconds - item2.reviewDate in seconds
-        ELSE IF flashcardField is ReviewInterval THEN
-            SET comparison to item1.reviewInterval in days - item2.reviewInterval in days
-        ENDIF
-        
-        IF reversed THEN
-            MULTIPLY comparison by -1
-        ENDIF
-        RETURN comparison >= 0
-    END
-
     START quit()
         CALL display.quit
     END
@@ -191,7 +155,7 @@ CLASS ArionDisplay
     START ArionDisplay()
         INITIALIZE frame
         INITIALIZE pages
-        CALL parseGuide with "./guide.xml"
+        CALL parseGuidePages with "./guide.xml"
         SET aboutFilepath to "./about.txt"
     END
     
@@ -215,7 +179,13 @@ CLASS ArionDisplay
         ADD table to frame
         
         INITIALIZE deleteButton
-        ADD deleteCallback to deleteButton
+        SET deleteButton callback to:
+            CALL displayConfirmationWindow with "Delete Flashcards?", "Delete Confirmation"
+            IF return value THEN
+                CALL deleteCallback
+            ENDIF
+            CALL displayBrowseScreen with flashcard, deleteCallback, and editCallback
+        ENDSET
         ADD deleteButton to frame
 
         SET prevData to clone of table.data
@@ -291,18 +261,21 @@ CLASS ArionDisplay
             ADD element to pop-up window
         ENDFOR
 
-        IF pageNum < length of pages - 1 THEN
-            SET nextCallback to CALL displayGuidePage with pageNum + 1
-            INITIALIZE nextButton
-            ADD nextCallback to nextButton
-            ADD nextButton to pop-up window
+        SET nextCallback to CALL displayGuidePage with pageNum + 1
+        INITIALIZE nextButton
+        ADD nextCallback to nextButton
+        IF pageNum >= length of pages - 1 THEN
+            DISABLE nextButton
         ENDIF
-        IF pageNum > 0 THEN
-            SET prevCallback to CALL displayGuidePage with pageNum - 1
-            INITIALIZE prevButton
-            ADD prevCallback to prevButton
-            ADD prevButton to pop-up window
+        ADD nextButton to pop-up window
+        
+        SET prevCallback to CALL displayGuidePage with pageNum - 1
+        INITIALIZE prevButton
+        ADD prevCallback to prevButton
+        IF pageNum <= 0 THEN
+            DISABLE prevButton
         ENDIF
+        ADD prevButton to pop-up window
     END
     
     START displayAboutScreen()
@@ -341,7 +314,7 @@ CLASS ArionDisplay
         ENDIF
     END
 
-    START parseGuide(guideFilepath)
+    START parseGuidePages(guideFilepath)
         PARSE xmlDocument from guideFilepath
         FOR page in xmlDocument
             APPEND page to pages
@@ -391,10 +364,16 @@ CLASS Flashcard
         SET reviewInterval to 1 day
     END
     
-    START updateReviewDate(front, back)
-        MULTIPLY reviewInterval by 1.6
-        ROUND UP reviewInterval
-        SET reviewDate to reviewInterval + the current date
+    START updateReviewDate(success)
+        IF success THEN
+            SET reviewDate to today plus reviewInterval
+            MULTIPLY reviewInterval by 1.6
+            ROUND DOWN reviewInterval
+            INCREMENT reviewInterval
+        ELSE
+            SET reviewDate to today
+            SET reviewInterval to 1
+        ENDIF
     END
     
     START isDue(front, back)
@@ -425,5 +404,30 @@ CLASS Flashcard
         SET stringArray at index 2 to return value
         
         RETURN stringArray
+    END
+    
+    START compareTo(flashcardField, reversed, item1, item2)
+        IF flashcardField is Front THEN
+            SET comparisonItem1 to item1.front
+            SET comparisonItem2 to item2.front
+        ELSE IF flashcardField is Back THEN
+            SET comparisonItem1 to item1.back
+            SET comparisonItem2 to item2.back
+        ENDIF
+
+        INITIALIZE comparison
+        IF flashcardField is Front OR Back THEN
+            COMPARE comparisonItem1 to comparisonItem2 lexographically
+            SET comparison to result
+        ELSE IF flashcardField is ReviewDate THEN
+            SET comparison to item1.reviewDate in seconds - item2.reviewDate in seconds
+        ELSE IF flashcardField is ReviewInterval THEN
+            SET comparison to item1.reviewInterval in days - item2.reviewInterval in days
+        ENDIF
+        
+        IF reversed THEN
+            MULTIPLY comparison by -1
+        ENDIF
+        RETURN comparison >= 0
     END
 ENDCLASS

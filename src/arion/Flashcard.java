@@ -2,23 +2,19 @@ package arion;
 
 import exception.*;
 
-import java.time.*;
-import java.text.SimpleDateFormat;
-import java.text.ParseException;
-import java.util.Date;
-import java.time.temporal.ChronoUnit;
+import java.time.LocalDate;
 import java.time.format.*;
-import java.time.temporal.TemporalAccessor;
+import java.util.concurrent.SynchronousQueue;
 
 /*
- * The Flashcard class represents one flashcard. It contains the flashcard's front, back, review date, and review interval.
+ * The Flashcard class represents a flashcard. It contains the flashcard's front, back, review date, and review interval.
  * It contains Flashcard specific methods, such as checking whether it is due, and updating the review interval after studying.
  */
 
 public class Flashcard {
 
     /*
-     * The Field enum represents one of the four fields of a flashcard.
+     * The Field enum represents one of a flashcard's fields.
      */
     public enum Field {
         FRONT("Front"),
@@ -27,7 +23,7 @@ public class Flashcard {
         REVIEW_INTERVAL("Review Interval");
 
         String title;
-
+        
         /*
          * The constructor assigns its title to the passed title.
          *
@@ -35,6 +31,9 @@ public class Flashcard {
          * Output: new Field enum.
          */
         Field(String title) {
+            if (title == null) {
+                throw new NullPointerException("Cannot construct field with null title.");
+            }
             this.title = title;
         }
 
@@ -52,24 +51,24 @@ public class Flashcard {
 
     public final static int FIELD_COUNT = 4;
     public final static Field[] FIELDS = { Field.FRONT, Field.BACK, Field.REVIEW_DATE, Field.REVIEW_INTERVAL };
-    public static String[] FIELD_TITLES = generateFieldTitles();
+    public static String[] FIELD_TITLES = generateFieldTitles(FIELDS);
 
-    private static DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("MMMM d, uuuu")
-            .withResolverStyle(ResolverStyle.STRICT);
+    private static DateTimeFormatter dateFormatter = DateTimeFormatter
+            .ofPattern("MMMM d, uuuu")
+            .withResolverStyle(ResolverStyle.STRICT); // ensure the date is valid
 
     public String front;
     public String back;
     public LocalDate reviewDate;
     public long reviewInterval;
 
-    private static final double intervalMultiplicand = 1.6;
+    private static final double INTERVAL_MULTIPLICAND = 1.6;
 
     /*
      * The constructor sets the internal fields of Flashcard to the values passed in
      * the constructor.
      * This signature accepts the review date as a LocalDate, and the review
-     * interval as
-     * a number of days, as a long.
+     * interval as a number of days, as a long.
      *
      * Input: front, back, review date, and review interval of the flashcard.
      * Output: new Flashcard class.
@@ -102,7 +101,7 @@ public class Flashcard {
 
     /*
      * This constructor signature does not accept a review date or interval;
-     * instead, it sets them to the default values of today and one day.
+     * instead, it sets them to the default values of today, and one day.
      * 
      * Input: flashcard front and back.
      * Output: new Flashcard class.
@@ -114,10 +113,9 @@ public class Flashcard {
     /*
      * This constructor signature represents the review date and interval as
      * Strings.
-     * This is primarily useful when flashcards from user input.
+     * This is primarily useful when parsing flashcards from user input.
      * It may throw a DateFormatException or an IntervalFormatException, since the
-     * String representation
-     * of the date and review interval can be incorrect.
+     * String representation of the date and review interval can be incorrect.
      */
     public Flashcard(String front, String back, String reviewDate, String reviewInterval)
             throws DateFormatException, IntervalFormatException {
@@ -126,23 +124,22 @@ public class Flashcard {
 
     /*
      * toStringArray converts the flashcard into a String array representation,
-     * where each field
-     * is converted to a String then inserted into the array.
+     * where each field is converted to a String then inserted into the array.
      * 
      * Input: no input.
      * Output: String array representing this Flashcard.
      */
     public String[] toStringArray() {
         return new String[] {
-                front,
-                back,
-                dateFormatter.format(reviewDate),
-                formatInterval(reviewInterval),
+            front,
+            back,
+            dateFormatter.format(reviewDate),
+            formatInterval(reviewInterval),
         };
     }
 
     /*
-     * fromStringArray converts a String array representing a Flashcard into a
+     * fromStringArray converts a String array which represents a Flashcard into a
      * Flashcard.
      * The array contains either a front and a back, or all four fields represented as Strings.
      *
@@ -158,9 +155,9 @@ public class Flashcard {
             return new Flashcard(array[0], array[1]);
         } else if (array.length == 4) {
             return new Flashcard(array[0], array[1], array[2], array[3]);
+        } else {
+            throw new IllegalArgumentException("Array has to be of length two or four.");
         }
-        
-        throw new IllegalArgumentException("Array has to be of length two or four.");
     }
 
     /*
@@ -168,8 +165,7 @@ public class Flashcard {
      * according to whether the user failed or succeeded in recalling the back
      * information.
      * If successful, the review interval gets 1.6 times longer, and the review date
-     * is set to
-     * the current date plus the interval.
+     * is set to the current date plus the interval.
      * Otherwise, the interval is reset to one day and the review date is today.
      *
      * Input: whether the user successfully reviewed the flashcard.
@@ -178,7 +174,7 @@ public class Flashcard {
     public void updateReview(boolean success) {
         if (success) {
             reviewDate = LocalDate.now().plusDays(reviewInterval);
-            reviewInterval = (long) (reviewInterval * 1.6) + 1;
+            reviewInterval = (long) (reviewInterval * INTERVAL_MULTIPLICAND) + 1;
         } else {
             reviewDate = LocalDate.now();
             reviewInterval = 1;
@@ -218,6 +214,7 @@ public class Flashcard {
      */
     @Override
     public boolean equals(Object other) {
+        System.out.println("Checking if equal");
         if (!(other instanceof Flashcard)) {
             return false;
         }
@@ -231,10 +228,8 @@ public class Flashcard {
 
     /*
      * compareTo compares this flashcard to another one. The comparison is true if
-     * this flashcard
-     * is in the correct order compared to the other, given the desired field and
-     * whether the comparison
-     * is reversed.
+     * this flashcard is in the correct order compared to the other,
+     * given the desired field, and whether the comparison is reversed.
      *
      * Input: other flashcard to compare to, field to compare by, and whether to
      * reverse the comparison.
@@ -242,6 +237,10 @@ public class Flashcard {
      * flashcard.
      */
     public boolean compareTo(Flashcard other, Field field, boolean reversed) {
+        if (other == null || field == null) {
+            throw new NullPointerException("Cannot compare flashcard with null parameters.");
+        }
+        
         boolean comparison;
         switch (field) {
             case FRONT:
@@ -260,10 +259,11 @@ public class Flashcard {
                 comparison = true;
                 break;
         }
-        if (reversed)
+        if (reversed) {
             return !comparison;
-        else
+        } else {
             return comparison;
+        }
     }
 
     /*
@@ -273,6 +273,10 @@ public class Flashcard {
      * Output: String representing the interval.
      */
     private static String formatInterval(long interval) {
+        if (interval <= 0) {
+            throw new IllegalArgumentException("Cannot format interval less than 0.");
+        }
+        
         StringBuilder builder = new StringBuilder(interval + " ");
 
         if (interval == 1) {
@@ -328,15 +332,24 @@ public class Flashcard {
     }
 
     /*
-     * generateFieldTitles statically generates a list of field titles from the FIELDS array.
+     * generateFieldTitles statically generates a list of field titles from the passed
+     * field array.
      *
      * Input: no input.
      * Output: String array of titles of all flashcard fields.
      */
-    private static String[] generateFieldTitles() {
-        String[] titles = new String[FIELD_COUNT];
-        for (int i = 0; i < FIELDS.length; i++) {
-            titles[i] = FIELDS[i].title;
+    private static String[] generateFieldTitles(Field[] fields) {
+        if (fields == null) {
+            throw new NullPointerException("");
+        }
+        
+        String[] titles = new String[fields.length];
+        for (int i = 0; i < fields.length; i++) {
+            Field field = fields[i];
+            if (field == null) {
+                throw new NullPointerException("Cannot parse null field.");
+            }
+            titles[i] = fields[i].title;
         }
         return titles;
     }

@@ -21,7 +21,7 @@ public class Arion {
     private final static String LOG_FILEPATH = "./log.txt";
     private static Optional<PrintWriter> exceptionWriterOption = generateExceptionWriter();
 
-    private Optional<ArionDisplay> displayOption;
+    private ArionDisplay display;
     private boolean headless;
 
     private ArrayList<Flashcard> flashcards = new ArrayList<Flashcard>();
@@ -32,78 +32,23 @@ public class Arion {
 
     private final static double WINDOW_SCREEN_RATIO = 1.6;
 
-    public class TestHooks {
-        private Database origDatabase;
-        private Arion parent;
-
-        public TestHooks(Arion parent) {
-            this.parent = parent;
-        }
-
-        public void setDatabaseFile(String databaseFilename) {
-            origDatabase = database;
-            database = new Database(databaseFilename);
-        }
-
-        public void restoreDatabase() {
-            database = origDatabase;
-        }
-
-        public ArrayList<Flashcard> getFlashcards() {
-            return flashcards;
-        }
-
-        public String getDatabaseFilename() {
-            return DATABASE_FILENAME;
-        }
-
-        public void setFlashcards(ArrayList<Flashcard> flashcards) {
-            parent.flashcards = flashcards;
-        }
-
-        public boolean loadFlashcardRoutine() {
-            return parent.loadFlashcardRoutine();
-        }
-
-        public boolean saveFlashcardRoutine() {
-            return parent.saveFlashcardRoutine();
-        }
-    }
-
-    public TestHooks _testHooks = new TestHooks(this);
-
-    /*
-     * The default Arion constructor simply initializes itself with a default headless
-     * value of false.
-     *
-     * Input: no input value.
-     * Output: new non-headless Arion class.
-     */
-    public Arion() {
-        this(false);
-    }
-
     /*
      * The Arion constructor constructs a new Arion, optionally initializing
      * a new display.
      *
-     * Input: boolean representing whether Arion should be headless.
+     * Input: no input.
      * Output: new Arion class.
      */
-    public Arion(boolean headless) {
-        writeMockFlashcards();
+    public Arion() {
         
-        if (!headless) {
-            Dimension windowSize = Toolkit.getDefaultToolkit().getScreenSize();
-            int width = (int) (windowSize.width / WINDOW_SCREEN_RATIO);
-            int height = (int) (windowSize.height / WINDOW_SCREEN_RATIO);
-            displayOption = Optional.of(new ArionDisplay("Arion", width, height));
+        // make the window proportional to the screen size
+        Dimension windowSize = Toolkit.getDefaultToolkit().getScreenSize();
+        int width = (int) (windowSize.width / WINDOW_SCREEN_RATIO);
+        int height = (int) (windowSize.height / WINDOW_SCREEN_RATIO);
+        display = new ArionDisplay("Arion", width, height);
 
-            prepareMenuBar();
-            enterMainScreen();
-        } else {
-            displayOption = Optional.empty();
-        }
+        prepareMenuBar();
+        enterMainScreen();
     }
 
     /*
@@ -183,8 +128,8 @@ public class Arion {
         } catch (DateFormatException e) {
             ArionDisplay.warningAlert("Incorrectly formatted review date; discarding edits to flashcard #" + flashcardNum);
         } catch (IntervalFormatException e) {
-            ArionDisplay.warningAlert(
-                    "Incorrectly formatted review interval; discarding edits to flashcard #" + flashcardNum);
+            ArionDisplay.warningAlert("Incorrectly formatted review interval;"
+                    + " discarding edits to flashcard #" + flashcardNum);
         }
     }
 
@@ -202,7 +147,7 @@ public class Arion {
             throw new IllegalArgumentException(msg);
         }
 
-        // the exceptions can never be thrown, because the review date and interval
+        // these exceptions can never be thrown, because the review date and interval
         // are not given here
         try {
             flashcards.add(Flashcard.fromStringArray(fields));
@@ -229,15 +174,11 @@ public class Arion {
             ArionDisplay.alert("There are no flashcards due to study.");
             return;
         }
-
-        if (!displayOption.isPresent()) {
-            return;
-        }
-        displayOption.get().displayStudyScreen(dueFlashcards.peek(), true, reviewCallback);
+        display.displayStudyScreen(dueFlashcards.peek(), true, reviewCallback);
     }
 
     /*
-     * sortFlashcards sorts the flashcards ArrayList by the given field, and
+     * sortFlashcards sorts the flashcards ArrayList by the given field and
      * whether to reverse it.
      *
      * Input: field to sort the flashcards by, and whether to reverse the list.
@@ -254,6 +195,7 @@ public class Arion {
     }
 
     /*
+     * This method is a wrapper for displayException.
      * This displayException signature accepts a message to display along with the exception,
      * and an exception.
      *
@@ -308,10 +250,12 @@ public class Arion {
         output.append("See " + LOG_FILEPATH + " for more information.");
 
         ArionDisplay.alert(output.toString());
-        if (exceptionWriterOption.isPresent())
+        if (exceptionWriterOption.isPresent()) {
             e.printStackTrace(exceptionWriterOption.get());
-        else
+        }
+        else {
             e.printStackTrace();
+        }
     }
 
     /*
@@ -324,9 +268,7 @@ public class Arion {
         if (exceptionWriterOption.isPresent()) {
             exceptionWriterOption.get().flush();
         }
-        if (displayOption.isPresent()) {
-            displayOption.get().quit();
-        }
+        display.quit();
     }
     
     /*
@@ -336,11 +278,6 @@ public class Arion {
      * Output: no return value, modifies the display.
      */
     private void prepareMenuBar() {
-        if (!displayOption.isPresent()) {
-            ArionDisplay.alert("Cannot prepare menu bar when display is not present.");
-        }
-        ArionDisplay display = displayOption.get();
-
         String[] menuTitles = new String[] { "File", "Edit", "View", "Help", "Quit" };
         String[][] actions = new String[][] {
                 { "Load", "Save" },
@@ -360,7 +297,7 @@ public class Arion {
                         () -> saveFlashcards(), // Save
                 },
                 { // Edit
-                        () -> display.displayBrowseScreen(flashcards, editCallback, deleteCallback),
+                        () -> display.displayBrowseScreen(flashcards, editCallback, deleteCallback), // Browse
                         () -> display.displayAddScreen(addCallback), // Add
                 },
                 { // View
@@ -372,39 +309,10 @@ public class Arion {
                         () -> display.displayAboutScreen(), // About
                 },
                 { // Quit
-                        () -> quit(), // Quit
+                        () -> quit(), // Confirm?
                 }
         };
         display.displayMenuBar(menuTitles, actions, callbacks);
-    }
-
-    private void writeMockFlashcards() {
-        //flashcards.add(new Flashcard("What is the capital of France?", "Paris"));
-        //flashcards.add(new Flashcard("Who wrote \"To Kill a Mockingbird\"?", "Harper Lee"));
-        //flashcards.add(new Flashcard("What is the chemical symbol for gold?", "Au"));
-        //flashcards.add(new Flashcard("What year did World War II end?", "1945"));
-        //flashcards.add(new Flashcard("Who painted the Mona Lisa?", "Leonardo da Vinci"));
-        //flashcards.add(new Flashcard("What is the powerhouse of the cell?", "Mitochondria"));
-        //flashcards.add(new Flashcard("What is the tallest mountain in the world?", "Mount Everest"));
-        //flashcards.add(new Flashcard("Who invented the telephone?", "Alexander Graham Bell"));
-        //flashcards.add(new Flashcard("What is the largest planet in our solar system?", "Jupiter"));
-        //flashcards.add(new Flashcard("What is the chemical formula for water?", "H2O"));
-        //flashcards.add(new Flashcard("What is the process of plants making their food called?", "Photosynthesis"));
-        //flashcards.add(new Flashcard("Who discovered penicillin?", "Alexander Fleming"));
-        //// flashcards.add(new Flashcard("What is the speed of light in a vacuum?",
-        //// "Approximately 299,792,458 meters per second"));
-        //flashcards.add(new Flashcard("What is the longest river in the world?", "The Nile"));
-        //flashcards.add(new Flashcard("What is the main component of the Earth's atmosphere?", "Nitrogen"));
-        //flashcards.add(new Flashcard("Who developed the theory of relativity?", "Albert Einstein"));
-        //flashcards.add(new Flashcard("What is the largest ocean on Earth?", "Pacific Ocean"));
-        //flashcards.add(new Flashcard("Who wrote \"Romeo and Juliet\"?", "William Shakespeare"));
-        //flashcards.add(new Flashcard("What is the capital of Japan?", "Tokyo"));
-        //flashcards.add(new Flashcard("What is the chemical symbol for silver?", "Ag"));
-        //flashcards.add(new Flashcard("What is the freezing point of water in Fahrenheit?", "32 degrees Fahrenheit"));
-        //flashcards.add(new Flashcard("What is the largest mammal on Earth?", "Blue whale"));
-        //flashcards.add(new Flashcard("Who was the first woman to win a Nobel Prize?", "Marie Curie"));
-        //flashcards.add(new Flashcard("What is the largest desert in the world?", "Antarctica"));
-        //flashcards.add(new Flashcard("What is the chemical formula for glucose?", "C6H12O6"));
     }
 
     /*
@@ -415,11 +323,6 @@ public class Arion {
      * Output: no return value, displays the main screen to the user.
      */
     private void enterMainScreen() {
-        if (!displayOption.isPresent()) {
-            ArionDisplay.warningAlert("Cannot enter main screen when display is not present.");
-            return;
-        }
-        ArionDisplay display = displayOption.get();
         display.displayMainScreen(
                 () -> display.displayAddScreen(addCallback),
                 () -> studyFlashcards());
@@ -433,11 +336,7 @@ public class Arion {
      * Output: boolean representing whether the user confirmed the over write.
      */
     private boolean confirmOverwrite() {
-        if (displayOption.isEmpty()) {
-            ArionDisplay.warningAlert("Cannot confirm overwrite when display is not present.");
-            return true;
-        }
-        return displayOption.get().displayConfirmationWindow("Overwrite Flashcards?", "Overwrite Confirmation");
+        return display.displayConfirmationWindow("Overwrite Flashcards?", "Overwrite Confirmation");
     }
 
     /*
@@ -448,12 +347,7 @@ public class Arion {
      * Output: no return value, modifies the dueFlashcards queue.
      */
     private void updateReviewedFlashcard(boolean success) {
-        if (!displayOption.isPresent()) {
-            ArionDisplay.warningAlert("Cannot perform study function without display.");
-            return;
-        }
-        ArionDisplay display = displayOption.get();
-
+        
         // flashcard can never be null, but it is checked just in case
         Flashcard flashcard = dueFlashcards.poll();
         if (flashcard == null) {
@@ -522,8 +416,7 @@ public class Arion {
             // append the appropriate element
             if (appendLeft) {
                 sorted[sortedIdx] = left[leftIdx++];
-            }
-            else {
+            } else {
                 sorted[sortedIdx] = right[rightIdx++];
             }
         }
@@ -605,7 +498,7 @@ public class Arion {
         if (idx < 0 || idx >= flashcards.size()) {
             throw new IllegalArgumentException("Invalid index when trying to delete flashcard.");
         }
-        if (idx > 0 && indices[i-1] <= idx) {
+        if (i > 0 && indices[i-1] >= idx) {
             throw new IllegalArgumentException("Indices to delete were not provided in ascending order");
         }
         return idx;

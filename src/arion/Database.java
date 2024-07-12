@@ -46,11 +46,14 @@ public class Database {
 
         for (int i = 0; i < flashcardCount; i++) {
             String[] fields = new String[Flashcard.FIELD_COUNT];
-            for (int j = 0; j < Flashcard.FIELD_COUNT; j++)
+            for (int j = 0; j < Flashcard.FIELD_COUNT; j++) {
                 fields[j] = reader.readLine();
+            }
 
-            if (fields[Flashcard.FIELD_COUNT - 1] == null)
+            // check that none of the fields are null
+            if (fields[Flashcard.FIELD_COUNT - 1] == null) {
                 throw new DatabaseFormatException("Database file is too short.");
+            }
 
             try {
                 flashcards.add(Flashcard.fromStringArray(fields));
@@ -73,6 +76,7 @@ public class Database {
      * Output: no return value, writes to this database's file.
      */
     public void writeFlashcards(ArrayList<Flashcard> flashcards) throws IOException, DatabaseWriteException {
+        
         if (!file.canWrite()) {
             throw new DatabaseWriteException("Cannot write to " + filepath);
         }
@@ -83,10 +87,15 @@ public class Database {
         PrintWriter writer = new PrintWriter(file);
         writer.println(flashcards.size()); // header is entry count
 
-        for (Flashcard flashcard : flashcards)
-            for (String field : flashcard.toStringArray())
+        for (Flashcard flashcard : flashcards) {
+            for (String field : flashcard.toStringArray()) {
                 writer.println(field);
+            }
+        }
 
         writer.close();
+    }
+
+    public static void main(String[] args) {
     }
 }

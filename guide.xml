@@ -217,27 +217,25 @@
         </txt>
     </page>
     <page name="About">
-        <txt>
-        The About feature summarizes Arion's functionality.
-        It outlines Arion's purpose, design philosophy, and development.
-        </txt>
         <pair>
             <txt>
+            The About feature summarizes Arion's functionality.
+            It outlines Arion's purpose, design philosophy, and development.
             To use the About feature, first click the "About" menu option in the "Help" menu: 
             </txt>   
-            <img src="about.png"/>
+            <img src="about.png" scale="0.5"/>
         </pair>
         <pair>
             <txt>
             The following window will be displayed:
             </txt>
-            <img src="about-window.png"/>
+            <img src="about-window.png" scale="0.8"/>
         </pair>
         <pair>
             <txt>
             To close the pop-up, click the "Close" button at the bottom of the window:
             </txt>
-            <img src="about-close.png"/>
+            <img src="about-close.png" scale="0.5"/>
         </pair>
     </page>
     <page name="Quit">

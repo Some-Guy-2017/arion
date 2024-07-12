@@ -12,7 +12,6 @@ If correct, the review interval is multiplied by 1.6, and the review date is adj
 If incorrect, the review interval is reset to 1, and the review date is set to today.
 Every, the user studies the due flashcards, slowly building their memory over time.
 
-
 Arion is meant for learners who want to retain information for long periods of time,
     such as years, or even their entire lifetime.
 This is an especially common problem in language learning;
@@ -23,7 +22,6 @@ By using spaced repetition in tandem with immersion, the meaning, spelling,
 Additionally, spaced repetition can be used for entering a new profession; for instance,
     medicine requires tremendous amounts of study, and the information is crucially important to remember.
 Thus, an SRS it a useful tool to learn such information.
-
 
 Arion was built to be small and simple.
 It has minimal features and a simple GUI, allowing users of varying technical proficiency to use it.

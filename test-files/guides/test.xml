@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE guide [
+    <!ELEMENT guide (page*)>
+    <!ELEMENT page (txt|img|pair)*>
+    <!ATTLIST page name CDATA #REQUIRED>
+    <!ELEMENT pair ((txt|img),(txt|img))>
+    <!ELEMENT txt (#PCDATA|brk)*>
+    <!ELEMENT brk EMPTY>
+    <!ELEMENT img EMPTY>
+    <!ATTLIST img src CDATA #REQUIRED>
+    <!ATTLIST img scale CDATA "0.4">
+]>
+<guide>
+    <page name="Test">
+        <txt>
+        Hello, World!
+        </txt>
+    </page>
+    <page name="Comment">
+        <txt>
+        Hello, World!
+        </txt>
+        <!-- comment -->
+        <txt>
+        Hello, World!
+        </txt>
+    </page>
+    <page name="Empty">
+    </page>
+    <page name="Image">
+        <img src="bird-thumbnail.jpg"/>
+    </page>
+    <page name="Pair">
+        <pair>
+            <txt>
+            Hello, World!
+            </txt>
+            <img src="bird-thumbnail.jpg"/>
+        </pair>
+    </page>
+</guide>

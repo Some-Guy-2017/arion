@@ -1,20 +1,25 @@
 # TODO
 # Formatting the code
-[ ] Add inline comments
-    [✓] Comments above each file
-    [✓] Write comments for SAXErrorHandler and MutablePopup 
-    [ ] Methods
-        [✓] All methods have a block comment summarizing: Purpose, Input and Output
-        [ ] Some complex methods have explanatory comments inside
-[ ] Remove headless mode
-[ ] Remove test hooks
-[ ] Remove mock flashcards
-[ ] Change the Guide's about image to an actual image of the About window (not Lena 😭)
-[ ] Remove lena.png from images
-[ ] Reread
-    [ ] Check that pseudocode lines up with actual code
+[ ] Remove test functions
+[ ] Remove Flashcard.toString
+[ ] Remove Flashcard.equals
+[ ] Remove any extra main methods
 
 ## Done
+[✓] make RANDOM_WORD_COUNT in ArionUtils final again
+[✓] Reread
+    [✓] Add inline comments
+[✓] Change the Guide's about image to an actual image of the About window (not Lena 😭)
+[✓] Remove lena.png from images
+[✓] Remove mock flashcards
+[✓] Remove headless mode
+[✓] Remove test hooks
+[✓] Add inline comments
+    [✓] Comments above each file
+    [✓] Write comments for SAXErrorHandler and MutablePopup 
+    [✓] Methods
+        [✓] All methods have a block comment summarizing: Purpose, Input and Output
+        [-] Some complex methods have explanatory comments inside
 [✓] Format code
 [✓] Add tests for all public methods
 [✓] Figure out how to implement the features required by the rubric:
