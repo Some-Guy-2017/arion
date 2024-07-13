@@ -4,6 +4,7 @@ import callback.*;
 import exception.*;
 
 import java.util.*;
+import java.time.LocalDate;
 import java.awt.Toolkit;
 import java.awt.Dimension;
 import java.io.*;
@@ -19,7 +20,7 @@ public class Arion {
     private Database database = new Database(DATABASE_FILENAME);
 
     private final static String LOG_FILEPATH = "./log.txt";
-    private static Optional<PrintWriter> exceptionWriterOption = generateExceptionWriter();
+    private static Optional<PrintWriter> exceptionWriterOption = generateExceptionWriter(LOG_FILEPATH);
 
     private ArionDisplay display;
     private boolean headless;
@@ -59,11 +60,18 @@ public class Arion {
      * Output: no return value, modifies the flashcard ArrayList.
      */
     public void loadFlashcards() {
-        if (confirmOverwrite()) {
-            boolean success = loadFlashcardRoutine();
-            if (success) {
-                ArionDisplay.alert("Read Flashcards.");
-            }
+        if (!confirmOverwrite()) {
+            return;
+        }
+        try {
+            flashcards = database.readFlashcards();
+            ArionDisplay.alert("Read Flashcards.");
+        } catch (DatabaseFormatException e) {
+            ArionDisplay.warningAlert("Database file is improperly formatted; please delete " + DATABASE_FILENAME);
+        } catch (DatabaseReadException e) {
+            ArionDisplay.warningAlert("Cannot read from " + database.filepath + "\nDoes it exist?");
+        } catch (IOException e) {
+            displayException(e);
         }
     }
 
@@ -78,9 +86,14 @@ public class Arion {
         if (!confirmOverwrite()) {
             return;
         }
-        boolean success = saveFlashcardRoutine();
-        if (success) {
+        try {
+            database.writeFlashcards(flashcards);
             ArionDisplay.alert("Wrote Flashcards.");
+        } catch (IOException e) {
+            e.printStackTrace();
+            ArionDisplay.warningAlert("Could not save flashcards due to error.");
+        } catch (DatabaseWriteException e) {
+            ArionDisplay.warningAlert("Cannot write to " + database.filepath);
         }
     }
 
@@ -142,6 +155,10 @@ public class Arion {
      * Output: no return value, appends to the flashcard ArrayList.
      */
     public void addFlashcard(String[] fields) {
+        if (fields == null) {
+            throw new NullPointerException("Cannot add null fields.");
+        }
+        
         if (fields.length != 2) {
             String msg = "Could not construct flashcards because field array is improperly sized.";
             throw new IllegalArgumentException(msg);
@@ -231,7 +248,7 @@ public class Arion {
      * the exception to a file.
      */
     private static void _displayException(Optional<String> messageOption, Exception e) {
-        if (e == null) {
+        if (messageOption == null || e == null) {
             throw new NullPointerException("Attempted to display null exception.");
         }
 
@@ -376,13 +393,25 @@ public class Arion {
      * Output: a new array containing the elements in sorted order.
      */
     private Flashcard[] mergeSort(Flashcard[] flashcards, Flashcard.Field field, boolean reversed, int start, int len) {
+        if (flashcards == null || field == null) {
+            throw new NullPointerException("Cannot merge sort with null parameters.");
+        }
+        if (start < 0 || start + len > flashcards.length || len < 1) {
+            throw new IllegalArgumentException("Parameters are out of bounds.");
+        }
 
         if (len == 1) {
+            if (flashcards[start] == null) {
+                throw new NullPointerException("Cannot merges sort with null flashcards.");
+            }
             return new Flashcard[] { flashcards[start] };
         }
         if (len == 2) {
             Flashcard flashcard1 = flashcards[start];
             Flashcard flashcard2 = flashcards[start + 1];
+            if (flashcard1 == null || flashcard2 == null) {
+                throw new NullPointerException("Cannot merge sort with null flashcards.");
+            }
             if (flashcard1.compareTo(flashcard2, field, reversed)) {
                 return new Flashcard[] { flashcard1, flashcard2 };
             }
@@ -431,58 +460,14 @@ public class Arion {
      * Input: no input.
      * Output: optionally a PrintWriter that writes to the log file.
      */
-    private static Optional<PrintWriter> generateExceptionWriter() {
-        try {
-            return Optional.of(new PrintWriter(LOG_FILEPATH));
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
+    private static Optional<PrintWriter> generateExceptionWriter(String filepath) {
+        if (filepath == null) {
+            throw new NullPointerException("Cannot generate exception writer from null filepath.");
         }
+        try {
+            return Optional.of(new PrintWriter(filepath));
+        } catch (FileNotFoundException e) {}
         return Optional.empty();
-    }
-
-    /*
-     * loadFlashcardRoutine loads the flashcards from the database into memory, without asking
-     * for confirmation from the user.
-     * This method exists because when testing, confirmation is not required; thus, it was brought
-     * into its own method so the overwrite confirmation is not run during testing.
-     *
-     * Input: no input.
-     * Output: boolean representing whether the operation succeeded, writes to flashcard ArrayList.
-     */
-    private boolean loadFlashcardRoutine() {
-        try {
-            flashcards = database.readFlashcards();
-            return true;
-        } catch (DatabaseFormatException e) {
-            ArionDisplay.warningAlert("Database file is improperly formatted; please delete " + DATABASE_FILENAME);
-        } catch (DatabaseReadException e) {
-            ArionDisplay.warningAlert("Cannot read from " + database.filepath + "\nDoes it exist?");
-        } catch (IOException e) {
-            displayException(e);
-        }
-        return false;
-    }
-
-    /*
-     * saveFlashcardRoutine saves the flashcards in memory into the database, without asking
-     * for confirmation from the user.
-     * This method exists because when testing, confirmation is not required; thus, it was brought
-     * into its own method so the overwrite confirmation is not run during testing.
-     *
-     * Input: no input.
-     * Output: boolean representing whether the operation succeeded, writes to flashcard database.
-     */
-    private boolean saveFlashcardRoutine() {
-        try {
-            database.writeFlashcards(flashcards);
-            return true;
-        } catch (IOException e) {
-            e.printStackTrace();
-            ArionDisplay.warningAlert("Could not save flashcards due to error.");
-        } catch (DatabaseWriteException e) {
-            ArionDisplay.warningAlert("Cannot write to " + database.filepath);
-        }
-        return false;
     }
 
     /*
@@ -494,6 +479,13 @@ public class Arion {
      * Output: index of the flashcard to delete.
      */
     private int getDeletionIndex(int[] indices, int i) {
+        if (indices == null) {
+            throw new NullPointerException("Cannot get deletion index of null array.");
+        }
+        if (i < 0 || i >= indices.length) {
+            throw new IllegalArgumentException("'i' not in range.");
+        }
+        
         int idx = indices[i]; 
         if (idx < 0 || idx >= flashcards.size()) {
             throw new IllegalArgumentException("Invalid index when trying to delete flashcard.");
@@ -503,7 +495,7 @@ public class Arion {
         }
         return idx;
     }
-
+    
     /*
      * main is the entry point to the program. It initializes an Arion class, and
      * catches exceptions so they are displayed to the user.

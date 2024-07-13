@@ -3,7 +3,7 @@
 # variables to specify
 BUILD_DIR := ./build/
 SRC_DIR := ./src/
-MAIN_CLASS := arion.Database
+MAIN_CLASS := arion.Arion
 JAR_FILE := arion.jar
 
 SRCS := $(shell find ${SRC_DIR} -name *.java)

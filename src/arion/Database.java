@@ -95,7 +95,4 @@ public class Database {
 
         writer.close();
     }
-
-    public static void main(String[] args) {
-    }
 }

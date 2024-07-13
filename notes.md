@@ -1,11 +1,12 @@
 # TODO
 # Formatting the code
-[ ] Remove test functions
-[ ] Remove Flashcard.toString
-[ ] Remove Flashcard.equals
-[ ] Remove any extra main methods
 
 ## Done
+[✓] Remove test functions
+[✓] Remove Flashcard.toString
+[✓] Remove Flashcard.equals
+[✓] Remove any extra main methods
+[✓] Re-enable the display
 [✓] make RANDOM_WORD_COUNT in ArionUtils final again
 [✓] Reread
     [✓] Add inline comments

@@ -192,41 +192,6 @@ public class Flashcard {
     }
 
     /*
-     * toString represents this flashcard as a String.
-     *
-     * Input: no input.
-     * Output: String representing this flashcard.
-     */
-    @Override
-    public String toString() {
-        String[] stringFields = toStringArray();
-        return "Flashcard(front: \"" + stringFields[0] + "\""
-                + ", back: \"" + stringFields[1] + "\""
-                + ", reviewDate: \"" + stringFields[2] + "\""
-                + ", reviewInterval: \"" + stringFields[3] + "\")";
-    }
-
-    /*
-     * equals checks whether the input object is equal to this flashcard.
-     *
-     * Input: other object to compare against.
-     * Output: boolean representing whether the other object equals this flashcard.
-     */
-    @Override
-    public boolean equals(Object other) {
-        System.out.println("Checking if equal");
-        if (!(other instanceof Flashcard)) {
-            return false;
-        }
-
-        Flashcard otherFlashcard = (Flashcard) other;
-        return front.equals(otherFlashcard.front)
-                && back.equals(otherFlashcard.back)
-                && reviewDate.equals(otherFlashcard.reviewDate)
-                && reviewInterval == otherFlashcard.reviewInterval;
-    }
-
-    /*
      * compareTo compares this flashcard to another one. The comparison is true if
      * this flashcard is in the correct order compared to the other,
      * given the desired field, and whether the comparison is reversed.
