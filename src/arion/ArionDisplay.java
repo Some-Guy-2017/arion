@@ -601,7 +601,7 @@ public class ArionDisplay {
         // top bar contains the header and the back button
         JPanel topBar = new JPanel();
         topBar.setLayout(new OverlayLayout(topBar));
-
+        
         JLabel header = new JLabel(screenName);
         addPanelComponent(topBar, header, Format.H1, false);
 
@@ -616,11 +616,14 @@ public class ArionDisplay {
             // wrap the button to align it to the right
             JPanel buttonWrapper = new JPanel(new FlowLayout(FlowLayout.RIGHT));
             addPanelComponent(buttonWrapper, backButton, Format.COMPONENT, false);
-            addPanelComponent(topBar, buttonWrapper, MAX_DIMENSION, Format.NESTED_PANEL, false);
+            
+            Dimension maxSize = buttonWrapper.getPreferredSize();
+            maxSize.width = Integer.MAX_VALUE;
+            addPanelComponent(topBar, buttonWrapper, maxSize, Format.NESTED_PANEL, false);
         }
 
         Dimension maxSize = topBar.getPreferredSize();
-        maxSize.width = Integer.MAX_VALUE;
+        maxSize.width = (int) ((frame.getWidth() - Format.MARGIN_SIZE * 2) * 0.99);
         addPanelComponent(panel, topBar, maxSize, Format.NESTED_PANEL, true);
         return panel;
     }
@@ -900,8 +903,8 @@ public class ArionDisplay {
         component.setAlignmentX(JComponent.CENTER_ALIGNMENT);
         component.setAlignmentY(JComponent.TOP_ALIGNMENT);
         setFont(component, style);
-
         component.setMaximumSize(maxSize.orElse(component.getPreferredSize()));
+
         panel.add(component);
         if (addPadding) {
             panel.add(Box.createRigidArea(new Dimension(style.padding, style.padding)));
@@ -968,7 +971,7 @@ public class ArionDisplay {
         }));
         addPanelComponent(buttonPanel, updateButton, Format.COMPONENT, true);
 
-        JButton deleteButton = generateButton("Delete Flashcard");
+        JButton deleteButton = generateButton("Delete Flashcards");
         deleteButton.addActionListener(generateActionListener(() -> {
             
             boolean confirmation = displayConfirmationWindow("Delete Flashcards?", "Delete Confirmation");

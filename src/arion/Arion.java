@@ -50,6 +50,11 @@ public class Arion {
 
         prepareMenuBar();
         enterMainScreen();
+
+        // Load flashcards after the GUI is displayed so if a message is displayed,
+        // the GUI is not empty in the background.
+        // The message to display is also ignored.
+        loadFlashcardsRoutine();
     }
 
     /*
@@ -60,18 +65,14 @@ public class Arion {
      * Output: no return value, modifies the flashcard ArrayList.
      */
     public void loadFlashcards() {
-        if (!confirmOverwrite()) {
+        boolean confirm = display.displayConfirmationWindow(
+                "Load Flashcards?", "Overwrite Confirmation");
+        if (!confirm) {
             return;
         }
-        try {
-            flashcards = database.readFlashcards();
-            ArionDisplay.alert("Read Flashcards.");
-        } catch (DatabaseFormatException e) {
-            ArionDisplay.warningAlert("Database file is improperly formatted; please delete " + DATABASE_FILENAME);
-        } catch (DatabaseReadException e) {
-            ArionDisplay.warningAlert("Cannot read from " + database.filepath + "\nDoes it exist?");
-        } catch (IOException e) {
-            displayException(e);
+        Optional<String> message = loadFlashcardsRoutine();
+        if (message.isPresent()) {
+            ArionDisplay.alert(message.get());
         }
     }
 
@@ -83,7 +84,9 @@ public class Arion {
      * Output: no return value, writes to the flashcard database.
      */
     public void saveFlashcards() {
-        if (!confirmOverwrite()) {
+        boolean confirm = display.displayConfirmationWindow(
+                "Save Flashcards?", "Overwrite Confirmation");
+        if (!confirm) {
             return;
         }
         try {
@@ -259,10 +262,11 @@ public class Arion {
 
         output.append("An exception occurred");
         String message = e.getMessage();
-        if (message != null)
+        if (message != null) {
             output.append(": " + message + "\n");
-        else
+        } else {
             output.append(".\n");
+        }
 
         output.append("See " + LOG_FILEPATH + " for more information.");
 
@@ -282,6 +286,7 @@ public class Arion {
      * Output: no output.
      */
     public void quit() {
+        saveFlashcards();
         if (exceptionWriterOption.isPresent()) {
             exceptionWriterOption.get().flush();
         }
@@ -343,17 +348,6 @@ public class Arion {
         display.displayMainScreen(
                 () -> display.displayAddScreen(addCallback),
                 () -> studyFlashcards());
-    }
-
-    /*
-     * confirmOverwrite confirms with the user whether they would like to overwrite
-     * flashcards.
-     *
-     * Input: no input.
-     * Output: boolean representing whether the user confirmed the over write.
-     */
-    private boolean confirmOverwrite() {
-        return display.displayConfirmationWindow("Overwrite Flashcards?", "Overwrite Confirmation");
     }
 
     /*
@@ -494,6 +488,28 @@ public class Arion {
             throw new IllegalArgumentException("Indices to delete were not provided in ascending order");
         }
         return idx;
+    }
+
+    /*
+     * loadFlashcardsRoutine performs the routine to load flashcards, without the initial check
+     * from the user; this method exists so upon initializing Arion, it can load the
+     * previously stored flashcards without prompting the user.
+     *
+     * Input: no input.
+     * Output: optionally returns a message to display to the user, writes to the flashcard ArrayList.
+     */
+    private Optional<String> loadFlashcardsRoutine() {
+        try {
+            flashcards = database.readFlashcards();
+            return Optional.of("Read Flashcards.");
+        } catch (DatabaseFormatException e) {
+            return Optional.of("Warning: Database file is improperly formatted; please delete " + DATABASE_FILENAME);
+        } catch (DatabaseReadException e) {
+            return Optional.of("Cannot read from " + database.filepath + "\nDoes it exist?");
+        } catch (IOException e) {
+            displayException(e);
+            return Optional.empty();
+        }
     }
     
     /*

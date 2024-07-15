@@ -77,6 +77,7 @@ public class Database {
      */
     public void writeFlashcards(ArrayList<Flashcard> flashcards) throws IOException, DatabaseWriteException {
         
+        file.createNewFile();
         if (!file.canWrite()) {
             throw new DatabaseWriteException("Cannot write to " + filepath);
         }
