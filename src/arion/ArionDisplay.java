@@ -38,14 +38,14 @@ public class ArionDisplay {
     private Optional<DeleteCallback> deleteCallbackOption = Optional.empty();
     private Optional<ArrayList<Flashcard>> browseFlashcardsOption = Optional.empty();
 
-    private final static String[] IMAGE_DIRECTORIES = { "./", "./img/" };
-    private final static String GUIDE_FILEPATH = "./guide.xml";
-    private final static String ABOUT_FILEPATH = "./about.txt";
+    private final static String[] IMAGE_DIRECTORIES = { "/", "/img/", "/res/img/" };
+    private final static String GUIDE_FILEPATH = "/res/guide.xml";
+    private final static String ABOUT_FILEPATH = "/res/about.txt";
     private final static String BACK_BUTTON_FILE = "back-button.png";
     final static Dimension MAX_DIMENSION = new Dimension(Integer.MAX_VALUE, Integer.MAX_VALUE);
     
     private Optional<String> aboutContentOption = readAboutContent(ABOUT_FILEPATH);
-    private static Optional<Node[]> guidePages = parseGuidePages(GUIDE_FILEPATH);
+    private Optional<Node[]> guidePages = parseGuidePages(GUIDE_FILEPATH);
 
     /*
      * The Style class represents the styling parameters for a given element.
@@ -482,7 +482,7 @@ public class ArionDisplay {
         MutablePopup popup = new MutablePopup(frame, panel);
 
         if (aboutContentOption.isEmpty()) {
-            warningAlert("Cannot display About window because could not parse " + ABOUT_FILEPATH);
+            warningAlert("Cannot display About window because could not read " + ABOUT_FILEPATH);
             return;
         }
         JTextArea textArea = generateTextArea(aboutContentOption.get());
@@ -1074,7 +1074,7 @@ public class ArionDisplay {
      * Input: file path of the guide xml file.
      * Output: optionally an array nodes, representing a list of pages.
      */
-    private static Optional<Node[]> parseGuidePages(String guideFilepath) {
+    private Optional<Node[]> parseGuidePages(String guideFilepath) {
         if (guideFilepath == null) {
             throw new NullPointerException("Cannot parse null guide");
         }
@@ -1089,7 +1089,8 @@ public class ArionDisplay {
             DocumentBuilder builder = factory.newDocumentBuilder();
             builder.setErrorHandler(new SAXErrorHandler());
 
-            doc = builder.parse(guideFilepath);
+            InputStream stream = getClass().getResourceAsStream(guideFilepath);
+            doc = builder.parse(stream);
             doc.getDocumentElement().normalize();
 
         } catch (ParserConfigurationException | SAXException | IOException e) {
@@ -1289,7 +1290,7 @@ public class ArionDisplay {
      * node.
      * Output: no return value, adds content to the panel.
      */
-    private static void addNode(JPanel panel, Node node, int width, boolean addPadding, Color background)
+    private void addNode(JPanel panel, Node node, int width, boolean addPadding, Color background)
             throws GuideDisplayException {
         if (panel == null || node == null || background == null) {
             throw new NullPointerException("Cannot add node with null parameters.");
@@ -1357,7 +1358,7 @@ public class ArionDisplay {
      * and the background color of the node.
      * Output: no return value, adds content to the panel.
      */
-    private static void addImageNode(JPanel panel, Node node, int width, boolean addPadding)
+    private void addImageNode(JPanel panel, Node node, int width, boolean addPadding)
             throws GuideDisplayException {
         if (panel == null || node == null) {
             throw new NullPointerException("Cannot add image node with null parameters.");
@@ -1386,7 +1387,7 @@ public class ArionDisplay {
      * and the background color of the node.
      * Output: no return value, adds content to the panel.
      */
-    private static void addPairNode(JPanel panel, Node node, int width, boolean addPadding, Color background)
+    private void addPairNode(JPanel panel, Node node, int width, boolean addPadding, Color background)
             throws GuideDisplayException {
         if (panel == null || node == null || background == null) {
             throw new NullPointerException("Cannot add pair node with null parameters.");
@@ -1498,7 +1499,7 @@ public class ArionDisplay {
      * Input: name of image file, and desired width of image.
      * Output: optional image read from the file.
      */
-    private static Optional<ImageIcon> readImageFile(String filename, int width) {
+    private Optional<ImageIcon> readImageFile(String filename, int width) {
         if (filename == null) {
             throw new NullPointerException("Cannot read null image file");
         }
@@ -1506,23 +1507,20 @@ public class ArionDisplay {
             throw new IllegalArgumentException("Cannot make image less than 0 pixels wide.");
         }
         
-        File file = null;
-        boolean found = false;
+        InputStream stream = null;
         for (String dir : IMAGE_DIRECTORIES) {
-            file = new File(dir, filename);
-            if (file.canRead()) {
-                found = true;
+            stream = getClass().getResourceAsStream(dir + filename);
+            if (stream != null) {
                 break;
             }
         }
-        
-        if (!found) {
+        if (stream == null) {
             return Optional.empty();
         }
 
         BufferedImage img;
         try {
-            img = ImageIO.read(file);
+            img = ImageIO.read(stream);
         } catch (IOException e) {
             return Optional.empty();
         }
@@ -1558,14 +1556,18 @@ public class ArionDisplay {
      * Input: filepath to read about content from.
      * Output: optionally content of the about page.
      */
-    private static Optional<String> readAboutContent(String filepath) {
+    private Optional<String> readAboutContent(String filepath) {
         if (filepath == null) {
             throw new NullPointerException("Cannot read about content from null filepath.");
         }
 
         String aboutContent;
         try {
-            BufferedReader reader = new BufferedReader(new FileReader(filepath));
+            Optional<BufferedReader> readerOption = ArionUtils.createResourceReader(getClass(), filepath);
+            if (readerOption.isEmpty()) {
+                return Optional.empty();
+            }
+            BufferedReader reader = readerOption.get();
             StringBuilder sb = new StringBuilder();
             String line;
             while ((line = reader.readLine()) != null) {

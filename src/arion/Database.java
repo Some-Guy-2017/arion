@@ -40,7 +40,9 @@ public class Database {
             throw new DatabaseReadException("Cannot read " + filepath);
         }
 
+        // read and write from an external file, not one inside the jar
         BufferedReader reader = new BufferedReader(new FileReader(file));
+        
         int flashcardCount = Integer.valueOf(reader.readLine()).intValue();
         ArrayList<Flashcard> flashcards = new ArrayList<>(flashcardCount);
 

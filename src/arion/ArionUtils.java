@@ -16,8 +16,7 @@ public class ArionUtils {
     static final int RANDOM_WORD_COUNT = 2;
     static final String NOUN_FILEPATH = "./top-1000-nouns.txt";
     static Random rand = new Random();
-    //static Optional<ArrayList<String>> nounListOption = parseNouns(NOUN_FILEPATH);
-    static Optional<ArrayList<String>> nounListOption = Optional.empty();
+    Optional<ArrayList<String>> nounListOption = parseNouns(NOUN_FILEPATH);
 
     /*
      * generateRandomString generates a random string by concatenating "RANDOM_WORD_COUNT" nouns
@@ -26,7 +25,7 @@ public class ArionUtils {
      * Input: no input.
      * Output: if the noun list exists, then a random string; otherwise, nothing.
      */
-    public static Optional<String> generateRandomString() {
+    public Optional<String> generateRandomString() {
         if (nounListOption == null) {
             throw new NullPointerException("Cannot generate random String with null noun list.");
         }
@@ -63,7 +62,7 @@ public class ArionUtils {
      * Input: no input.
      * Output: if generateRandomString returns a String, then a random flashcard; otherwise, nothing.
      */
-    public static Optional<Flashcard> generateRandomFlashcard() {
+    public Optional<Flashcard> generateRandomFlashcard() {
         Optional<String> front = generateRandomString();
         Optional<String> back = generateRandomString();
 
@@ -122,6 +121,20 @@ public class ArionUtils {
 
         return output;
     }
+
+    /*
+     * createResourceReader creates a BufferedReader to the provided resource name.
+     *
+     * Input: name of the resource to read.
+     * Output: reader of the resource.
+     */
+    public static Optional<BufferedReader> createResourceReader(Class c, String name) {
+        InputStream stream = c.getResourceAsStream(name);
+        if (stream == null) {
+            return Optional.empty();
+        }
+        return Optional.of(new BufferedReader(new InputStreamReader(stream)));
+    }
     
     /*
      * parseNouns parses the nouns in "NOUN_FILEPATH".
@@ -130,13 +143,17 @@ public class ArionUtils {
      * Input: no input.
      * Output: list of nouns read from the file, or empty if the file cannot be read.
      */
-    private static Optional<ArrayList<String>> parseNouns(String filepath) {
+    private Optional<ArrayList<String>> parseNouns(String filepath) {
         if (filepath == null) {
             throw new NullPointerException("Cannot parse nouns with null filepath.");
         }
         
         try {
-            BufferedReader reader = new BufferedReader(new FileReader(filepath));
+            Optional<BufferedReader> readerOption = createResourceReader(getClass(), filepath);
+            if (readerOption.isEmpty()) {
+                return Optional.empty();
+            }
+            BufferedReader reader = readerOption.get();
             ArrayList<String> nouns = new ArrayList<>();
 
             String line;
